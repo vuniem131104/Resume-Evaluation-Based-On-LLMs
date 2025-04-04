@@ -2,7 +2,6 @@ import sounddevice as sd
 import numpy as np
 import whisper
 import wave
-import time 
 
 SAMPLERATE = 16000  
 SILENCE_THRESHOLD = 500  

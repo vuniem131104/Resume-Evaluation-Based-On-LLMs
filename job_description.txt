@@ -1,0 +1,29 @@
+Mô tả công việc
+We are looking for enthusiastic and talented students to join our team as AI Interns. This is an excellent opportunity to gain hands-on experience in artificial intelligence and machine learning while working on real-world projects. As an intern, you will collaborate with experienced professionals, learn cutting-edge technologies, and contribute to meaningful AI solutions.
+
+Work on developing and fine-tuning machine learning models and algorithms.
+Preprocess, clean, and organize data for analysis and modeling.
+Conduct exploratory data analysis (EDA) and create insightful visualizations.
+Research emerging trends in artificial intelligence to support ongoing projects.
+Test, validate, and optimize AI models to ensure high performance.
+Collaborate with team members to integrate AI solutions into larger systems.
+Document your work, including experiments, processes, and results.
+Yêu cầu ứng viên
+Education: Currently pursuing a Bachelor’s or Master’s degree in Computer Science, Data Science, Mathematics, Engineering, or related fields.
+Technical Skills:
+Familiarity with Python programming.
+Familiarity with machine learning frameworks such as TensorFlow, PyTorch, or scikit-learn.
+Basic understanding of data analysis tools (e.g., Pandas, NumPy) and SQL for database queries.
+Knowledge of fundamental concepts in machine learning, statistics, or mathematics.
+Have basic knowledge in NLP, GenAI, LLM.
+Have basic knowledge in Computer Vision (CNNs, GANs, ViT).
+Basic knowledge of backend development frameworks like FastAP.
+Reseach and Learning:
+Willingness to research and stay updated on advancements in Generative AI and related fields.
+Willingness to research and stay updated on advancements in Computer Vision and related fields.
+Eagerness to adapt and apply new knowledge in real-world projects.
+Soft Skills:
+Strong verbal and written communication skills in English.
+A strong desire to learn and explore new technologies.
+Analytical thinking and problem-solving abilities.
+Ability to collaborate effectively in a team-oriented environment.

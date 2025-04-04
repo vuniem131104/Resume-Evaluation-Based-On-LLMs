@@ -575,7 +575,11 @@ button:disabled {
 }
 
 #interview-answer {
-    flex-grow: 1;
+    width: 100%;
+    min-height: 50px; 
+    max-height: 150px;
+    height: auto;
+    overflow-y: auto;
     background: transparent;
     border: none;
     font-size: 14px;

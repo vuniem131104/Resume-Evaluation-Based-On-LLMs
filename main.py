@@ -279,15 +279,14 @@ async def get_interview_feedback(request: InterviewFeedbackRequest):
         }
         
 
-
 @app.post("/start_recording")
 async def start_recording_endpoint():
     try:
         print("Recording started...")
         text = start_record()
-        return JSONResponse(content={"success": True, "text": text})
+        return {"success": True, "text": text}
     except Exception as e:
-        return JSONResponse(content={"success": False, "error": str(e)})
+        return {"success": False, "error": str(e)}
 
 
 if __name__ == "__main__":

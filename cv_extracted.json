@@ -1,0 +1,145 @@
+{
+  "personal_info": {
+    "name": "LE HOANG VU",
+    "email": "niemhoalongvu@gmail.com",
+    "phone": "0362511450",
+    "location": "Dich Vong Hau, Cau Giay, Ha Noi",
+    "objective": [
+      "Become a professional AI Engineer",
+      "Seeking an AI internship position to enhance personal proficiency and learn a business aspects of running a software in a company"
+    ]
+  },
+  "education": [
+    {
+      "degree": "Information Technology",
+      "institution": "University of Engineering & Technology (VNU-UET)",
+      "field": "",
+      "duration": "September 2022 - now",
+      "gpa": "3.63",
+      "details": {}
+    }
+  ],
+  "work_experience": [
+    {
+      "position": "AI Engineer Intern",
+      "company": "FINPROS INVESTMENT JOINT STOCK COMPANY",
+      "duration": "28/06/2024 - 28/08/2024",
+      "description": [
+        "Developed an AI-powered automated stock trading bot",
+        "Collecting stock market data from major exchanges"
+      ]
+    }
+  ],
+  "skills": {
+    "technical": [
+      "Python",
+      "Java",
+      "C++",
+      "Javascipt",
+      "Microsoft Office",
+      "PyTorch",
+      "TensorFlow",
+      "Scikit-Learn",
+      "XGBoost",
+      "Pandas",
+      "Numpy",
+      "Detectron2",
+      "OpenCV",
+      "Ultralytics",
+      "Transformers",
+      "MySQL",
+      "PostgreSQL",
+      "MongoDB",
+      "Milvus",
+      "Qdrant",
+      "FastAPI",
+      "Docker",
+      "AWS",
+      "Spark",
+      "MLflow"
+    ],
+    "soft": [
+      "Creative",
+      "Problem-Solving",
+      "English Communication",
+      "Reading AI Papers"
+    ],
+    "languages": [
+      "Math and Probability & Statistics"
+    ]
+  },
+  "projects": [
+    {
+      "name": "Anomaly Detection in Complex Indoor Surveillance",
+      "link": "https://github.com/cuongtv312/anomaly-detection",
+      "description": "A system to detect anomaly in complex environments.",
+      "technologies": [
+        "Pytorch",
+        "Ultralytics",
+        "OpenCV",
+        "Redis",
+        "Supervision",
+        "Milvus",
+        "PostgreSQL"
+      ],
+      "main_tasks": [
+        "Developed a branch to detect actions from people within video by fine-tuning ActionCLIP",
+        "Improved performance of YOLO and DeepSORT to detect and track people",
+        "Used Milvus to store the vector embeddings serving later for detecting abnormal actions"
+      ]
+    },
+    {
+      "name": "Super Resolution With Pytorch",
+      "link": "https://github.com/vuniem131104/Super-Resolution-With-Pytorch",
+      "description": "The implementation of SRRESNET and SRGAN in super resolution task for blurry images.",
+      "technologies": [
+        "Pytorch",
+        "Torchvision",
+        "GANs"
+      ],
+      "main_tasks": [
+        "Designed and optimized deep learning models to enhance image quality",
+        "Preprocessed datasets and trained models using PyTorch",
+        "Evaluated model performance using PSNR and SSIM metrics"
+      ]
+    },
+    {
+      "name": "Image Retrieval",
+      "link": "https://github.com/vuniem131104/Image-Retrieval",
+      "description": "An app to retrieve similar images from the given image and text from users",
+      "technologies": [
+        "Pytorch",
+        "Streamlit",
+        "LLM"
+      ],
+      "main_tasks": [
+        "Used pretrained models to store vector embeddings from images into Milvus Vector Database",
+        "Used Streamlit to build interface",
+        "Designed a prompt for LLM to rerank visual images into a valid list to display on the app"
+      ]
+    }
+  ],
+  "awards": [
+    "Student Achievement Awards Summer 2023 | Excellent Student",
+    "Student Achievement Awards 2022-2023 | Good Student",
+    "Top 10 National High School Exam for A01 Group 2021-2022",
+    "First Prize in the Provincial Mathematics Excellent Student Competition | 12th grade of high school"
+  ],
+  "certificates": [
+    {
+      "name": "Computer Vision Masterclass",
+      "issuer": "",
+      "date": ""
+    },
+    {
+      "name": "PyTorch for Deep Learning Bootcamp",
+      "issuer": "",
+      "date": ""
+    },
+    {
+      "name": "MACHINE LEARNING MASTER CLASS",
+      "issuer": "",
+      "date": ""
+    }
+  ]
+}

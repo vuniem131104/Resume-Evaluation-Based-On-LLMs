@@ -1,0 +1,132 @@
+{
+  "job_info": {
+    "title": "AI Intern",
+    "department": "",
+    "level": "Intern",
+    "employment_type": "",
+    "location": ""
+  },
+  "requirements": {
+    "education": {
+      "degree": "Bachelor's or Master's",
+      "field": "Computer Science, Data Science, Mathematics, Engineering, or related fields",
+      "importance": 10
+    },
+    "experience": {
+      "years": 0,
+      "specific_domains": [],
+      "importance": 0
+    },
+    "technical_skills": [
+      {
+        "name": "Python programming",
+        "level": "Familiarity",
+        "importance": 8
+      },
+      {
+        "name": "Machine learning frameworks (TensorFlow, PyTorch, scikit-learn)",
+        "level": "Familiarity",
+        "importance": 8
+      },
+      {
+        "name": "Data analysis tools (Pandas, NumPy)",
+        "level": "Basic understanding",
+        "importance": 7
+      },
+      {
+        "name": "SQL for database queries",
+        "level": "Basic understanding",
+        "importance": 7
+      },
+      {
+        "name": "Machine learning, statistics, or mathematics",
+        "level": "Basic understanding",
+        "importance": 7
+      },
+      {
+        "name": "NLP, GenAI, LLM",
+        "level": "Basic knowledge",
+        "importance": 6
+      },
+      {
+        "name": "Computer Vision (CNNs, GANs, ViT)",
+        "level": "Basic knowledge",
+        "importance": 6
+      },
+      {
+        "name": "Backend development frameworks (FastAPI)",
+        "level": "Basic knowledge",
+        "importance": 6
+      }
+    ],
+    "soft_skills": [
+      {
+        "name": "Verbal and written communication skills in English",
+        "importance": 9
+      },
+      {
+        "name": "Analytical thinking and problem-solving abilities",
+        "importance": 9
+      },
+      {
+        "name": "Ability to collaborate effectively in a team-oriented environment",
+        "importance": 9
+      },
+      {
+        "name": "Strong desire to learn and explore new technologies",
+        "importance": 8
+      }
+    ],
+    "languages": [
+      {
+        "name": "English",
+        "proficiency": "Strong",
+        "importance": 9
+      }
+    ]
+  },
+  "responsibilities": [
+    {
+      "description": "Work on developing and fine-tuning machine learning models and algorithms",
+      "importance": 9
+    },
+    {
+      "description": "Preprocess, clean, and organize data for analysis and modeling",
+      "importance": 8
+    },
+    {
+      "description": "Conduct exploratory data analysis (EDA) and create insightful visualizations",
+      "importance": 8
+    },
+    {
+      "description": "Research emerging trends in artificial intelligence to support ongoing projects",
+      "importance": 7
+    },
+    {
+      "description": "Test, validate, and optimize AI models to ensure high performance",
+      "importance": 8
+    },
+    {
+      "description": "Collaborate with team members to integrate AI solutions into larger systems",
+      "importance": 8
+    },
+    {
+      "description": "Document your work, including experiments, processes, and results",
+      "importance": 7
+    }
+  ],
+  "preferred_qualifications": [
+    {
+      "description": "Willingness to research and stay updated on advancements in Generative AI and related fields",
+      "importance": 6
+    },
+    {
+      "description": "Willingness to research and stay updated on advancements in Computer Vision and related fields",
+      "importance": 6
+    },
+    {
+      "description": "Eagerness to adapt and apply new knowledge in real-world projects",
+      "importance": 6
+    }
+  ]
+}

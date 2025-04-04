@@ -162,7 +162,7 @@
               <div id="interview-messages" class="interview-messages"></div>
 
               <div class="interview-input">
-                <textarea id="interview-answer" placeholder="Type your answer here..." data-listener-added_9293b12b="true" style="color: black; max-height: 150px; width: 100%;" oninput="resizeTextArea(this)"></textarea>
+                <textarea id="interview-answer" placeholder="Type your answer here..." data-listener-added_9293b12b="true" oninput="adjustHeight(this)"></textarea>
                 <div class="button-group">
                   <button id="record-answer-btn" class="btn btn-icon">
                     <svg
@@ -242,9 +242,10 @@
 
     <script src="/static/js/script.js"></script>
     <script>
-      function resizeTextArea(element) {
-          element.style.height = "auto"; // Reset chiều cao để tính toán lại
-          element.style.height = element.scrollHeight + "px"; // Thiết lập chiều cao bằng nội dung
+      function adjustHeight(textarea) {
+          textarea.style.height = "50px"; // Đặt lại chiều cao ban đầu
+          let newHeight = textarea.scrollHeight; // Lấy chiều cao nội dung
+          textarea.style.height = Math.min(newHeight, 150) + "px"; // Giới hạn tối đa 150px
       }
       </script>
   </body>

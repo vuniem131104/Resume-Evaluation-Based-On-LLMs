@@ -653,7 +653,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 endInterviewBtn.textContent = 'End Interview & Get Feedback';
             });
         }
-
         
     });
 
