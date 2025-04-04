@@ -163,6 +163,7 @@ def standardize_cv(text):
             "email": "Contact email (if available)",
             "phone": "Phone number (if available)",
             "location": "Address (if available)",
+            "desired_job": "Desired job title (if available)",
             "objective": ["List of career objectives (if available)"]
         }},
         "education": [

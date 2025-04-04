@@ -13,8 +13,8 @@ from dotenv import load_dotenv
 from groq import Groq
 from record import start_record
 import uvicorn
-import mysql.connector
-from mysql.connector import Error
+import psycopg2
+import psycopg2.extras
 import bcrypt
 
 load_dotenv()
@@ -27,23 +27,10 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
 
-# Hàm kết nối MySQL
-def get_db_connection():
-    try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
-        )
-        return conn
-    except Error as e:
-        print(f"Error MySQL: {e}")
-        return None
     
-
 class EvaluationRequest(BaseModel):
     job_description: Optional[str] = None
+    username: Optional[str] = None
 
 class InterviewMessage(BaseModel):
     role: str  # "interviewer" hoặc "candidate"
@@ -73,9 +60,23 @@ templates = Jinja2Templates(directory="templates")
 async def root(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
+def get_db_connection():
+    try:
+        return psycopg2.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+    except Exception as e:
+        print("Database connection error:", e)
+        return None
+
+
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, message: Optional[str] = None):
     return templates.TemplateResponse("login.html", {"request": request, "message": message})
+
 
 @app.post("/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
@@ -83,7 +84,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
     if not conn:
         return {"error": "Database connection failed"}
 
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     cursor.execute("SELECT password FROM users WHERE user_name = %s", (username,))
     user = cursor.fetchone()
 
@@ -102,6 +103,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request, message: Optional[str] = None):
     return templates.TemplateResponse("register.html", {"request": request, "message": message})
+
 
 @app.post("/register")
 async def register(request: Request, username: str = Form(...), password: str = Form(...)):
@@ -160,6 +162,41 @@ async def evaluate_resume(request: EvaluationRequest):
         cv_evaluation_pipeline("uploads/test.pdf", jd_text)
         with open("evaluation_result.json", "r") as f:
             evaluation_result = json.load(f)
+        
+        # Extract position from cv_extracted.json
+        try:
+            with open("cv_extracted.json", "r") as f:
+                cv_data = json.load(f)
+                position = cv_data['personal_info'].get('desired_job', 'unknown')
+        except Exception as e:
+            position = "Unknown"
+            print(f"Error extracting position: {str(e)}")
+        
+        # Connect to PostgreSQL and update/insert position
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        username = request.username
+        # Kiểm tra user đã tồn tại chưa, nếu có thì update
+        cursor.execute("SELECT COUNT(*) FROM user_history WHERE user_name = %s", (username,))
+        user_exists = cursor.fetchone()[0]
+
+        if user_exists:
+            # Nếu user đã tồn tại, update position vào mảng related_jobs
+            cursor.execute("""
+                UPDATE user_history
+                SET related_jobs = array_append(related_jobs, %s)
+                WHERE user_name = %s
+            """, (position, username))
+        else:
+            # Nếu user chưa tồn tại, insert vào bảng
+            cursor.execute("""
+                INSERT INTO user_history (user_name, related_jobs)
+                VALUES (%s, %s)
+            """, (username, [position]))  # Chuyển position thành mảng
+
+        conn.commit()
+        cursor.close()
+        conn.close()
         
         return evaluation_result
     except Exception as e:
@@ -279,12 +316,6 @@ async def get_interview_feedback(request: InterviewFeedbackRequest):
             temperature=0.7,
             max_tokens=1000
         )
-        
-        if response:
-            print("Response from Groq API:")
-            print(response)
-        else:
-            print("No response from Groq API")
         
         # Lấy phản hồi từ LLM và chuyển đổi thành JSON
         feedback_text = response.choices[0].message.content.strip()

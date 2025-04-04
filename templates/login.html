@@ -1,38 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - Resume Evaluation System</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
     <div class="container">
-        <div class="form-container">
-            <h1>Resume Evaluation System</h1>
-            <div class="card">
-                <h2>Login</h2>
-                {% if message %}
-                <div class="alert {% if 'success' in message %}success{% else %}error{% endif %}">
-                    {{ message }}
-                </div>
-                {% endif %}
-                <form method="POST" action="/login">
-                    <div class="form-group">
-                        <label for="username">Username</label>
-                        <input type="text" id="username" name="username" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Login</button>
-                </form>
-                <div class="form-footer">
-                    <p>Don't have an account? <a href="/register">Register here</a></p>
-                </div>
+      <div class="form-container">
+        <h1>Resume Evaluation System</h1>
+        <div class="card">
+          <h2>Login</h2>
+          {% if message %}
+          <div
+            class="alert {% if 'success' in message %}success{% else %}error{% endif %}"
+          >
+            {{ message }}
+          </div>
+          {% endif %}
+          <form id="login-form">
+            <div class="form-group">
+              <label for="username">Username</label>
+              <input type="text" id="username" name="username" required />
             </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" name="password" required />
+            </div>
+            <button type="submit" class="btn btn-primary">Login</button>
+          </form>
+          <div class="form-footer">
+            <p>Don't have an account? <a href="/register">Register here</a></p>
+          </div>
         </div>
+      </div>
     </div>
-</body>
+
+    <script>
+        const form = document.getElementById("login-form");
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault(); // Không để form submit bình thường
+
+        const formData = new FormData(form);
+        const data = new URLSearchParams(formData);
+
+        const response = await fetch("/login", {
+            method: "POST",
+            body: data,
+        });
+
+        if (response.redirected) {
+            const username = formData.get("username");
+            localStorage.setItem("username", username); // Lưu vào localStorage
+            window.location.href = response.url; // Chuyển hướng về dashboard
+        } else {
+            const html = await response.text();
+            document.body.innerHTML = html; // render lại trang nếu login fail
+        }
+    });
+    </script>
+  </body>
 </html>

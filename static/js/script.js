@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const backToEvaluationBtn = document.getElementById('back-to-evaluation-btn');
     const recordingBtn = document.getElementById('record-answer-btn')
     
+    const username = localStorage.getItem("username");
+
     let uploadedFileName = '';
     let fileUploaded = false;
     let jdSaved = false;
@@ -189,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ job_description: jobDescription })
+                    body: JSON.stringify({ job_description: jobDescription, username: username })
                 });
                 
                 if (!response.ok) {
