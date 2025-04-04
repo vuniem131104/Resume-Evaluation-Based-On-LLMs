@@ -87,7 +87,7 @@
   },
   "responsibilities": [
     {
-      "description": "Work on developing and fine-tuning machine learning models and algorithms",
+      "description": "Develop and fine-tune machine learning models and algorithms",
       "importance": 9
     },
     {
@@ -111,7 +111,7 @@
       "importance": 8
     },
     {
-      "description": "Document your work, including experiments, processes, and results",
+      "description": "Document work, including experiments, processes, and results",
       "importance": 7
     }
   ],

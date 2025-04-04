@@ -10,13 +10,37 @@ from typing import Optional, List
 from pydantic import BaseModel
 from evaluate import cv_evaluation_pipeline
 from dotenv import load_dotenv
-import groq 
+from groq import Groq
 from record import start_record
+import uvicorn
+import mysql.connector
+from mysql.connector import Error
+import bcrypt
 
 load_dotenv()
 
 groq_api_key = os.getenv("GROQ_API_KEY")
-groq_client = groq.Client(api_key=groq_api_key)
+groq_client = Groq(api_key=groq_api_key)
+
+DB_HOST = os.getenv("DB_HOST")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME = os.getenv("DB_NAME")
+
+# Hàm kết nối MySQL
+def get_db_connection():
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        return conn
+    except Error as e:
+        print(f"Error MySQL: {e}")
+        return None
+    
 
 class EvaluationRequest(BaseModel):
     job_description: Optional[str] = None
@@ -44,8 +68,6 @@ if not os.path.exists(UPLOAD_FOLDER):
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Mô phỏng database người dùng (trong thực tế nên sử dụng database thực)
-users_db = {"admin": "admin"}  # Thêm tài khoản mặc định để test
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
@@ -57,12 +79,25 @@ async def login_page(request: Request, message: Optional[str] = None):
 
 @app.post("/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
-    if username in users_db and users_db[username] == password:
+    conn = get_db_connection()
+    if not conn:
+        return {"error": "Database connection failed"}
+
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT password FROM users WHERE user_name = %s", (username,))
+    user = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if user and bcrypt.checkpw(password.encode(), user["password"].encode()):
         return RedirectResponse(url="/dashboard", status_code=303)
+    
     return templates.TemplateResponse("login.html", {
         "request": request, 
         "message": "Invalid username or password"
     })
+
 
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request, message: Optional[str] = None):
@@ -70,14 +105,35 @@ async def register_page(request: Request, message: Optional[str] = None):
 
 @app.post("/register")
 async def register(request: Request, username: str = Form(...), password: str = Form(...)):
-    if username in users_db:
+    conn = get_db_connection()
+    if not conn:
+        return {"error": "Database connection failed"}
+    
+    cursor = conn.cursor()
+
+    # Kiểm tra user đã tồn tại chưa
+    cursor.execute("SELECT COUNT(*) FROM users WHERE user_name = %s", (username,))
+    (user_exists,) = cursor.fetchone()
+    if user_exists:
+        cursor.close()
+        conn.close()
         return templates.TemplateResponse("register.html", {
             "request": request, 
             "message": "Username already exists"
         })
-    
-    users_db[username] = password
+
+    # Mã hóa mật khẩu với bcrypt
+    hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+    # Lưu vào database
+    cursor.execute("INSERT INTO users (user_name, password) VALUES (%s, %s)", (username, hashed_password))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
     return RedirectResponse(url="/login?message=Registration+successful", status_code=303)
+
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
@@ -215,14 +271,20 @@ async def get_interview_feedback(request: InterviewFeedbackRequest):
             "role": "system", 
             "content": "Analyze the interview and provide your assessment in the JSON format specified earlier."
         })
-        
+        print(messages)
         # Gọi API Groq
         response = groq_client.chat.completions.create(
-            model="llama3-70b-8192",  # hoặc model khác của Groq
+            model="qwen-2.5-32b",  # hoặc model khác của Groq
             messages=messages,
             temperature=0.7,
             max_tokens=1000
         )
+        
+        if response:
+            print("Response from Groq API:")
+            print(response)
+        else:
+            print("No response from Groq API")
         
         # Lấy phản hồi từ LLM và chuyển đổi thành JSON
         feedback_text = response.choices[0].message.content.strip()
@@ -290,5 +352,4 @@ async def start_recording_endpoint():
 
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)   

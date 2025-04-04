@@ -575,11 +575,6 @@ button:disabled {
 }
 
 #interview-answer {
-    width: 100%;
-    min-height: 50px; 
-    max-height: 150px;
-    height: auto;
-    overflow-y: auto;
     background: transparent;
     border: none;
     font-size: 14px;
@@ -602,11 +597,12 @@ button:disabled {
     align-items: center;
     justify-content: center;
     padding: 6px;
-    border-radius: 50%;
 }
 
 .btn-icon:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background-color: rgba(79,89,102,.078);
+    transform: translateX(0px);
+    transform: translateY(0px);
 }
 
 .interview-controls {
@@ -762,4 +758,22 @@ button:disabled {
         width: 100%;
         text-align: left;
     }
+}
+
+textarea::-webkit-scrollbar {
+    width: 8px; /* Độ rộng thanh cuộn */
+}
+
+textarea::-webkit-scrollbar-track {
+    background: #f1f1f1; /* Màu nền của thanh cuộn */
+    border-radius: 10px;
+}
+
+textarea::-webkit-scrollbar-thumb {
+    background: #d8d7d7; /* Màu của phần kéo thanh cuộn */
+    border-radius: 10px;
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+    background: #858383; /* Màu khi hover */
 }

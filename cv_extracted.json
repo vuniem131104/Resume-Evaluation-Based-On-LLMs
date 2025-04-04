@@ -36,7 +36,6 @@
       "Java",
       "C++",
       "Javascipt",
-      "Microsoft Office",
       "PyTorch",
       "TensorFlow",
       "Scikit-Learn",
@@ -59,10 +58,11 @@
       "MLflow"
     ],
     "soft": [
-      "Creative",
-      "Problem-Solving",
       "English Communication",
-      "Reading AI Papers"
+      "Reading AI Papers",
+      "Microsoft Office",
+      "Creative",
+      "Problem-Solving"
     ],
     "languages": [
       "Math and Probability & Statistics"
@@ -100,7 +100,7 @@
       "main_tasks": [
         "Designed and optimized deep learning models to enhance image quality",
         "Preprocessed datasets and trained models using PyTorch",
-        "Evaluated model performance using PSNR and SSIM metrics"
+        "Evaluated model performance using PSNR and SSIM metrics."
       ]
     },
     {
