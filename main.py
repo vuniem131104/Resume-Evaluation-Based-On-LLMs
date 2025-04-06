@@ -11,16 +11,19 @@ from pydantic import BaseModel
 from evaluate import cv_evaluation_pipeline
 from dotenv import load_dotenv
 from groq import Groq
-from record import start_record
+from utils import *
 import uvicorn
 import psycopg2
 import psycopg2.extras
 import bcrypt
+from langchain_groq import ChatGroq
 
 load_dotenv()
 
 groq_api_key = os.getenv("GROQ_API_KEY")
 groq_client = Groq(api_key=groq_api_key)
+
+llm = ChatGroq(model="deepseek-r1-distill-llama-70b", api_key=groq_api_key)
 
 DB_HOST = os.getenv("DB_HOST")
 DB_USER = os.getenv("DB_USER")
@@ -43,6 +46,9 @@ class InterviewQuestionRequest(BaseModel):
 class InterviewFeedbackRequest(BaseModel):
     job_description: str
     history: List[InterviewMessage]
+    
+class RelatedJobs(BaseModel):
+    username: Optional[str] = None
     
 app = FastAPI(title="Resume Evaluation System")
 
@@ -98,6 +104,10 @@ async def login(request: Request, username: str = Form(...), password: str = For
         "request": request, 
         "message": "Invalid username or password"
     })
+    
+@app.get("/jobs", response_class=HTMLResponse)
+async def jobs_page(request: Request, message: Optional[str] = None):
+    return templates.TemplateResponse("jobs.html", {"request": request, "message": message})
 
 
 @app.get("/register", response_class=HTMLResponse)
@@ -181,12 +191,14 @@ async def evaluate_resume(request: EvaluationRequest):
         user_exists = cursor.fetchone()[0]
 
         if user_exists:
-            # Nếu user đã tồn tại, update position vào mảng related_jobs
             cursor.execute("""
                 UPDATE user_history
-                SET related_jobs = array_append(related_jobs, %s)
+                SET related_jobs = CASE
+                    WHEN NOT (%s = ANY(related_jobs)) THEN array_append(related_jobs, %s)
+                    ELSE related_jobs
+                END
                 WHERE user_name = %s
-            """, (position, username))
+            """, (position, position, username))
         else:
             # Nếu user chưa tồn tại, insert vào bảng
             cursor.execute("""
@@ -308,7 +320,6 @@ async def get_interview_feedback(request: InterviewFeedbackRequest):
             "role": "system", 
             "content": "Analyze the interview and provide your assessment in the JSON format specified earlier."
         })
-        print(messages)
         # Gọi API Groq
         response = groq_client.chat.completions.create(
             model="qwen-2.5-32b",  # hoặc model khác của Groq
@@ -381,6 +392,22 @@ async def start_recording_endpoint():
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+@app.post('/get_related_jobs')
+async def get_related_jobs(request: RelatedJobs):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    username = request.username
+    cursor.execute("SELECT related_jobs FROM user_history WHERE user_name = %s", (username,))
+    result = cursor.fetchone()[0]
+    jobs = set(result)
+    agent = create_agent(llm)
+    job_text = ''
+    for job in jobs:
+        job_text += get_job_text(groq_client, job, agent)
+    save_json_jobs(groq_client, job_text)
+    with open("test.json", "r") as f:
+        result = json.load(f)
+    return result
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)   

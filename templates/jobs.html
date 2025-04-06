@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backend Developer Jobs in Hanoi</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/jobs.css">
+</head>
+<body>
+    <div class"jobs-container">
+      <header>
+        <h1>Resume Evaluation System</h1>
+        <nav>
+          <ul>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/jobs" id="jobs" class="active">Related Jobs</a></li>
+            <li><a href="/login">Logout</a></li>
+            <li style="background: white;width: 30px;height: 30px;border-radius: 100%;display: flex;align-items: center;justify-content: center;"><img src="/static/images/avatar-default.svg" style="width: 22px;"></li>
+          </ul>
+        </nav>
+      </header>
+      <main>
+        <div class="container">
+          <div class="header-content">
+            <div class="logo">
+              <i class="fas fa-code"></i>
+              <span>DevJobs</span>
+            </div>
+            <div class="search-bar">
+              <input type="text" placeholder="Search for jobs, skills, or companies">
+              <button><i class="fas fa-search"></i> Search</button>
+            </div>
+          </div>
+        </div>
+    
+      <div class="container">
+        <main class="main-content">
+          <h1 class="page-title">Related Jobs According To Your Resumes</h1>
+    
+          <div class="job-list" id="job-list">
+            <div id="loading-animation" class="loading-container">
+              <div class="loading-spinner"></div>
+              <p>Finding related jobs for your profile...</p>
+            </div>
+            <!-- Job cards will be inserted here by JavaScript -->
+          </div>
+    
+        </main>
+      </div>
+      </main>
+    </div>
+    
+
+  <script src="/static/js/jobs.js"></script>
+</body>
+</html>

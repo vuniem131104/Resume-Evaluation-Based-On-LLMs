@@ -4,4 +4,8 @@ vu.py
 *.wav 
 *.json 
 __pycache__
+test 
 .vscode
+uploads 
+*.txt
+*.ipynb
