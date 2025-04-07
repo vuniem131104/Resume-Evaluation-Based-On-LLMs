@@ -287,14 +287,14 @@ def cv_evaluation_pipeline(file_path, jd_text):
     if not evaluation_result:
         return {"error": "Could not evaluate match"}
     
-    with open("cv_extracted.json", "w") as f:
-        json.dump(cv_json, f, indent=2)
+    # with open("cv_extracted.json", "w") as f:
+    #     json.dump(cv_json, f, indent=2)
     
-    with open("jd_standardized.json", "w") as f:
-        json.dump(jd_json, f, indent=2)
+    # with open("jd_standardized.json", "w") as f:
+    #     json.dump(jd_json, f, indent=2)
     
-    with open("evaluation_result.json", "w") as f:
-        json.dump(evaluation_result, f, indent=2)
+    # with open("evaluation_result.json", "w") as f:
+    #     json.dump(evaluation_result, f, indent=2)
     
     return {
         "cv_json": cv_json,

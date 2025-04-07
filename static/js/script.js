@@ -33,7 +33,6 @@ document.addEventListener('DOMContentLoaded', function () {
     let isRecording = false;
     let answer = '';
 
-    // Kiểm tra xem có thể kích hoạt nút đánh giá hay không
     function checkEvaluateButtonState() {
         if (evaluateBtn) {
             evaluateBtn.disabled = !(fileUploaded && jdSaved);
@@ -41,7 +40,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (dropArea) {
-        // Prevent default drag behaviors
         [ 'dragenter', 'dragover', 'dragleave', 'drop' ].forEach(eventName => {
             dropArea.addEventListener(eventName, preventDefaults, false);
         });
@@ -51,7 +49,6 @@ document.addEventListener('DOMContentLoaded', function () {
             e.stopPropagation();
         }
 
-        // Highlight drop area when item is dragged over
         [ 'dragenter', 'dragover' ].forEach(eventName => {
             dropArea.addEventListener(eventName, highlight, false);
         });
@@ -68,7 +65,6 @@ document.addEventListener('DOMContentLoaded', function () {
             dropArea.classList.remove('is-active');
         }
 
-        // Handle dropped files
         dropArea.addEventListener('drop', handleDrop, false);
 
         function handleDrop(e) {
@@ -81,7 +77,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // Handle file input change
         fileInput.addEventListener('change', function () {
             if (fileInput.files.length) {
                 updateFileNameDisplay(fileInput.files[ 0 ].name);
@@ -93,7 +88,6 @@ document.addEventListener('DOMContentLoaded', function () {
             uploadedFileName = fileName;
         }
 
-        // Handle form submission
         if (uploadForm) {
             uploadForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
@@ -104,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 const formData = new FormData();
+                formData.append('username', username);
                 formData.append('file', fileInput.files[ 0 ]);
 
                 try {
@@ -129,7 +124,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Job Description handling
     if (saveJdBtn) {
         saveJdBtn.addEventListener('click', function () {
             const jdText = jobDescriptionInput.value.trim();
@@ -138,7 +132,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Lưu JD vào localStorage để sử dụng sau này
             localStorage.setItem('jobDescription', jdText);
             alert('Job description saved!');
             jdSaved = true;
@@ -155,14 +148,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Khôi phục JD từ localStorage nếu có
     if (jobDescriptionInput && localStorage.getItem('jobDescription')) {
         jobDescriptionInput.value = localStorage.getItem('jobDescription');
         jdSaved = true;
         checkEvaluateButtonState();
     }
 
-    // Evaluation button handling
     if (evaluateBtn) {
         evaluateBtn.addEventListener('click', async function () {
             if (!fileUploaded) {
@@ -176,16 +167,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             try {
-                // Hiển thị thông báo đang đánh giá
                 const evaluationPlaceholder = document.getElementById('evaluation-placeholder');
                 if (evaluationPlaceholder) {
                     evaluationPlaceholder.innerHTML = '<p>Evaluating resume... Please wait.</p>';
                 }
 
-                // Lấy JD từ localStorage
                 const jobDescription = localStorage.getItem('jobDescription');
 
-                // Gọi API để lấy kết quả đánh giá
                 const response = await fetch('/evaluate', {
                     method: 'POST',
                     headers: {
@@ -198,9 +186,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
-                const result = await response.json();
-                displayEvaluationResults(result);
-
+                const data = await response.json();
+                const jobUrl = `/result/${data.job_id}`;
+                displayEvaluationResults(jobUrl);
             } catch (error) {
                 console.error('Error:', error);
                 alert('An error occurred during evaluation: ' + error.message);
@@ -208,104 +196,101 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Display evaluation results
-    function displayEvaluationResults(results) {
-        const evaluationResults = document.getElementById('evaluation-results');
-        const evaluationPlaceholder = document.getElementById('evaluation-placeholder');
+    async function displayEvaluationResults(url) {
+        let tries = 0;
+        const maxTries = 30;
+        const interval = setInterval(async () => {
+            const res = await fetch(url);
+            const results = await res.json();
+            const cv_result = results.result;
+            const status = results.status;
+            console.log(cv_result);
+            console.log(status);
+            if (status === 'completed') {
+                const evaluationResults = document.getElementById('evaluation-results');
+                const evaluationPlaceholder = document.getElementById('evaluation-placeholder');
 
-        if (evaluationResults && evaluationPlaceholder) {
-            // Update progress bars and scores
-            document.getElementById('skills-progress').style.width = `${results.evaluation.technical_skills_score * 4}%`;
-            document.getElementById('experience-progress').style.width = `${results.evaluation.experience_score * 3.33}%`;
-            document.getElementById('education-progress').style.width = `${results.evaluation.education_score * 6.67}%`;
-            document.getElementById('soft-skills-progress').style.width = `${results.evaluation.soft_skills_score * 10}%`;
-            document.getElementById('language-progress').style.width = `${results.evaluation.language_score * 10}%`;
-            document.getElementById('projects-achievements-progress').style.width = `${results.evaluation.projects_achievements_score * 10}%`;
-            document.getElementById('overall-progress').style.width = `${results.evaluation.total_score}%`;
+                document.getElementById('skills-progress').style.width = `${cv_result.evaluation.technical_skills_score * 4}%`;
+                document.getElementById('experience-progress').style.width = `${cv_result.evaluation.experience_score * 3.33}%`;
+                document.getElementById('education-progress').style.width = `${cv_result.evaluation.education_score * 6.67}%`;
+                document.getElementById('soft-skills-progress').style.width = `${cv_result.evaluation.soft_skills_score * 10}%`;
+                document.getElementById('language-progress').style.width = `${cv_result.evaluation.language_score * 10}%`;
+                document.getElementById('projects-achievements-progress').style.width = `${cv_result.evaluation.projects_achievements_score * 10}%`;
+                document.getElementById('overall-progress').style.width = `${cv_result.evaluation.total_score}%`;
 
-            document.getElementById('skills-score').textContent = `${results.evaluation.technical_skills_score}/25`;
-            document.getElementById('experience-score').textContent = `${results.evaluation.experience_score}/30`;
-            document.getElementById('education-score').textContent = `${results.evaluation.education_score}/15`;
-            document.getElementById('soft-skills-score').textContent = `${results.evaluation.soft_skills_score}/10`;
-            document.getElementById('language-score').textContent = `${results.evaluation.language_score}/10`;
-            document.getElementById('projects-achievements-score').textContent = `${results.evaluation.projects_achievements_score}/10`;
-            document.getElementById('overall-score').textContent = `${results.evaluation.total_score}/100`;
+                document.getElementById('skills-score').textContent = `${cv_result.evaluation.technical_skills_score}/25`;
+                document.getElementById('experience-score').textContent = `${cv_result.evaluation.experience_score}/30`;
+                document.getElementById('education-score').textContent = `${cv_result.evaluation.education_score}/15`;
+                document.getElementById('soft-skills-score').textContent = `${cv_result.evaluation.soft_skills_score}/10`;
+                document.getElementById('language-score').textContent = `${cv_result.evaluation.language_score}/10`;
+                document.getElementById('projects-achievements-score').textContent = `${cv_result.evaluation.projects_achievements_score}/10`;
+                document.getElementById('overall-score').textContent = `${cv_result.evaluation.total_score}/100`;
 
-            // Update suggestions
-            const suggestionList = document.getElementById('suggestion-list');
-            suggestionList.innerHTML = '';
+                const suggestionList = document.getElementById('suggestion-list');
+                suggestionList.innerHTML = '';
 
-            // Add strengths
-            const strengthsHeader = document.createElement('h5');
-            strengthsHeader.textContent = 'Strengths:';
-            suggestionList.appendChild(strengthsHeader);
+                const strengthsHeader = document.createElement('h5');
+                strengthsHeader.textContent = 'Strengths:';
+                suggestionList.appendChild(strengthsHeader);
 
-            results.analysis.strengths.forEach(strength => {
-                const li = document.createElement('li');
-                li.textContent = strength;
-                li.classList.add('strength');
-                suggestionList.appendChild(li);
-            });
+                cv_result.analysis.strengths.forEach(strength => {
+                    const li = document.createElement('li');
+                    li.textContent = strength;
+                    li.classList.add('strength');
+                    suggestionList.appendChild(li);
+                });
 
-            // Add weaknesses
-            const weaknessesHeader = document.createElement('h5');
-            weaknessesHeader.textContent = 'Areas for Improvement:';
-            weaknessesHeader.style.marginTop = '15px';
-            suggestionList.appendChild(weaknessesHeader);
+                const weaknessesHeader = document.createElement('h5');
+                weaknessesHeader.textContent = 'Areas for Improvement:';
+                weaknessesHeader.style.marginTop = '15px';
+                suggestionList.appendChild(weaknessesHeader);
 
-            results.analysis.weaknesses.forEach(weakness => {
-                const li = document.createElement('li');
-                li.textContent = weakness;
-                li.classList.add('weakness');
-                suggestionList.appendChild(li);
-            });
+                cv_result.analysis.weaknesses.forEach(weakness => {
+                    const li = document.createElement('li');
+                    li.textContent = weakness;
+                    li.classList.add('weakness');
+                    suggestionList.appendChild(li);
+                });
 
-            // Add recommendation
-            const recommendationDiv = document.createElement('div');
-            recommendationDiv.classList.add('recommendation');
-            recommendationDiv.innerHTML = `
+                const recommendationDiv = document.createElement('div');
+                recommendationDiv.classList.add('recommendation');
+                recommendationDiv.innerHTML = `
                 <h5>Recommendation:</h5>
-                <p>${results.analysis.recommendation}</p>
-            `;
-            suggestionList.appendChild(recommendationDiv);
+                <p>${cv_result.analysis.recommendation}</p>`;
+                suggestionList.appendChild(recommendationDiv);
 
-            // Show results and hide placeholder
-            evaluationResults.classList.remove('hidden');
-            evaluationPlaceholder.classList.add('hidden');
-        }
+                evaluationResults.classList.remove('hidden');
+                evaluationPlaceholder.classList.add('hidden');
+                clearInterval(interval);
+            } else if (++tries >= maxTries) {
+                alert('Evaluation is taking longer than expected. Please try again later.');
+                clearInterval(interval);
+            }
+        }, 3000);
+
     }
 
-    // Virtual Interview Handling
     if (startInterviewBtn) {
         startInterviewBtn.addEventListener('click', function () {
-            // Show interview section
             virtualInterviewSection.classList.remove('hidden');
 
-            // Scroll to interview section
             virtualInterviewSection.scrollIntoView({ behavior: 'smooth' });
 
-            // Reset interview state
             interviewHistory = [];
             interviewMessages.innerHTML = '';
             interviewInProgress = true;
 
-            // Start the interview with welcome message
             addInterviewerMessage("Welcome to your virtual interview! I'll ask you questions based on your resume and the job description. Please answer them as you would in a real interview.");
-
-            // Start the interview
             startInterview();
         });
     }
 
     async function startInterview() {
         try {
-            // Show typing indicator
             showTypingIndicator();
 
-            // Get job description
             const jobDescription = localStorage.getItem('jobDescription');
 
-            // Call API to get first interview question
             const response = await fetch('/interview-question', {
                 method: 'POST',
                 headers: {
@@ -323,13 +308,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const result = await response.json();
 
-            // Remove typing indicator
             hideTypingIndicator();
 
-            // Add the question to chat
             addInterviewerMessage(result.question);
 
-            // Add to history
             interviewHistory.push({
                 role: "interviewer",
                 content: result.question
@@ -339,7 +321,6 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Error starting interview:', error);
             hideTypingIndicator();
 
-            // Fallback question if API fails
             const fallbackQuestion = "Could you tell me about your relevant experience for this position?";
             addInterviewerMessage(fallbackQuestion);
 
@@ -424,29 +405,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Add user's answer to chat
             addUserMessage(answer);
 
-            // Add to history
             interviewHistory.push({
                 role: "candidate",
                 content: answer
             });
 
-            // Clear the input
             interviewAnswer.value = '';
 
             interviewAnswer.style.height = '50px';
 
-            // Get next question
             try {
-                // Show typing indicator
                 showTypingIndicator();
 
-                // Get job description
                 const jobDescription = localStorage.getItem('jobDescription');
 
-                // Call API to get next interview question
                 const response = await fetch('/interview-question', {
                     method: 'POST',
                     headers: {
@@ -464,13 +438,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const result = await response.json();
 
-                // Remove typing indicator
                 hideTypingIndicator();
 
-                // Add the question to chat
                 addInterviewerMessage(result.question);
 
-                // Add to history
                 interviewHistory.push({
                     role: "interviewer",
                     content: result.question
@@ -480,7 +451,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error('Error getting next question:', error);
                 hideTypingIndicator();
 
-                // Fallback question if API fails
                 const fallbackQuestions = [
                     "That's interesting. Can you tell me more about your technical skills?",
                     "How do you handle challenging situations in your work?",
@@ -500,7 +470,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Allow pressing Enter to send message
     if (interviewAnswer) {
         interviewAnswer.addEventListener('keypress', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -518,17 +487,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             try {
-                // Disable the end button to prevent multiple clicks
                 endInterviewBtn.disabled = true;
                 endInterviewBtn.textContent = 'Generating Feedback...';
 
-                // Show a message that we're generating feedback
                 addInterviewerMessage("Thank you for completing the interview! I'm now analyzing your responses to provide personalized feedback.");
 
-                // Get job description
                 const jobDescription = localStorage.getItem('jobDescription');
 
-                // Call API to get interview feedback
                 const response = await fetch('/interview-feedback', {
                     method: 'POST',
                     headers: {
@@ -546,10 +511,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const result = await response.json();
 
-                // Display the interview results
                 displayInterviewResults(result);
 
-                // Hide interview chat and show results
                 document.querySelector('.interview-container').classList.add('hidden');
                 interviewResults.classList.remove('hidden');
 
@@ -565,10 +528,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function displayInterviewResults(results) {
-        // Populate interview summary
         interviewSummaryText.textContent = results.summary;
 
-        // Populate skills assessment
         interviewSkillsList.innerHTML = '';
         results.skills_assessment.forEach(skill => {
             const li = document.createElement('li');
@@ -589,7 +550,6 @@ document.addEventListener('DOMContentLoaded', function () {
             interviewSkillsList.appendChild(li);
         });
 
-        // Populate recommendations
         interviewRecommendationsList.innerHTML = '';
         results.recommendations.forEach(recommendation => {
             const li = document.createElement('li');
@@ -600,7 +560,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (downloadReportBtn) {
         downloadReportBtn.addEventListener('click', function () {
-            // Create report content
             let reportContent = `
                     # Interview Assessment Report
                     
@@ -610,7 +569,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     ## Skills Assessment
                 `;
 
-            // Add skills
             const skillItems = interviewSkillsList.querySelectorAll('.skill-item');
             skillItems.forEach(item => {
                 const skillName = item.querySelector('.skill-name').textContent;
@@ -618,14 +576,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 reportContent += `\n- ${skillName}: ${skillRating}`;
             });
 
-            // Add recommendations
             reportContent += `\n\n## Recommendations`;
             const recommendations = interviewRecommendationsList.querySelectorAll('li');
             recommendations.forEach(item => {
                 reportContent += `\n- ${item.textContent}`;
             });
 
-            // Create a blob and download
             const blob = new Blob([ reportContent ], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -640,19 +596,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (backToEvaluationBtn) {
         backToEvaluationBtn.addEventListener('click', function () {
-            // Hide interview results and section
             interviewResults.classList.add('hidden');
             virtualInterviewSection.classList.add('hidden');
 
-            // Scroll back to evaluation section
             document.querySelector('.evaluation-section').scrollIntoView({ behavior: 'smooth' });
 
-            // Reset interview state
             interviewHistory = [];
             interviewMessages.innerHTML = '';
             document.querySelector('.interview-container').classList.remove('hidden');
 
-            // Reset button
             endInterviewBtn.disabled = false;
             endInterviewBtn.textContent = 'End Interview & Get Feedback';
         });

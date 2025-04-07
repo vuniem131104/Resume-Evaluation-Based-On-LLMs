@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, File, UploadFile, HTTPException
+from fastapi import FastAPI, BackgroundTasks, Request, Form, File, UploadFile, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -13,10 +13,11 @@ from dotenv import load_dotenv
 from groq import Groq
 from utils import *
 import uvicorn
-import psycopg2
-import psycopg2.extras
 import bcrypt
 from langchain_groq import ChatGroq
+import redis 
+from rq import Queue 
+
 
 load_dotenv()
 
@@ -24,11 +25,13 @@ groq_api_key = os.getenv("GROQ_API_KEY")
 groq_client = Groq(api_key=groq_api_key)
 
 llm = ChatGroq(model="deepseek-r1-distill-llama-70b", api_key=groq_api_key)
+redis_client = redis.Redis(host="localhost", port=6379, db=0)
 
-DB_HOST = os.getenv("DB_HOST")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_NAME = os.getenv("DB_NAME")
+
+RESUME_EVALUATION_QUEUE_NAME = "resume_evaluation_queue"
+redis_conn = redis.Redis()
+queue = Queue(RESUME_EVALUATION_QUEUE_NAME, connection=redis_conn)
+
 
     
 class EvaluationRequest(BaseModel):
@@ -36,7 +39,7 @@ class EvaluationRequest(BaseModel):
     username: Optional[str] = None
 
 class InterviewMessage(BaseModel):
-    role: str  # "interviewer" hoặc "candidate"
+    role: str  # "interviewer" or "candidate"
     content: str
 
 class InterviewQuestionRequest(BaseModel):
@@ -52,12 +55,10 @@ class RelatedJobs(BaseModel):
     
 app = FastAPI(title="Resume Evaluation System")
 
-# Cấu hình thư mục uploads
 UPLOAD_FOLDER = "uploads"
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# Cấu hình static files và templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -65,19 +66,6 @@ templates = Jinja2Templates(directory="templates")
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
-
-def get_db_connection():
-    try:
-        return psycopg2.connect(
-            host=DB_HOST,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD
-        )
-    except Exception as e:
-        print("Database connection error:", e)
-        return None
-
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, message: Optional[str] = None):
@@ -123,7 +111,6 @@ async def register(request: Request, username: str = Form(...), password: str = 
     
     cursor = conn.cursor()
 
-    # Kiểm tra user đã tồn tại chưa
     cursor.execute("SELECT COUNT(*) FROM users WHERE user_name = %s", (username,))
     (user_exists,) = cursor.fetchone()
     if user_exists:
@@ -134,10 +121,8 @@ async def register(request: Request, username: str = Form(...), password: str = 
             "message": "Username already exists"
         })
 
-    # Mã hóa mật khẩu với bcrypt
     hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-    # Lưu vào database
     cursor.execute("INSERT INTO users (user_name, password) VALUES (%s, %s)", (username, hashed_password))
     conn.commit()
 
@@ -152,73 +137,74 @@ async def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(username: str = Form(...), file: UploadFile = File(...)):
     try:
-        file_location = os.path.join(UPLOAD_FOLDER, "test.pdf")
+        file_name = generate_unique_filename(username, file.filename)
+        file_location = os.path.join(UPLOAD_FOLDER, file_name)
         with open(file_location, "wb") as file_object:
             shutil.copyfileobj(file.file, file_object)
-        return {"filename": "test.pdf", "status": "success"}
+        redis_client.set(f'username:{username}', str(file_location))
+        return {"filename": file_name, "status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/evaluate")
-async def evaluate_resume(request: EvaluationRequest):
+def evaluate_resume(username, file_path, job_description):
+    results = cv_evaluation_pipeline(file_path, job_description)
+    evaluation_result = results['evaluation']
+    
     try:
-        if request.job_description:
-            with open("job_description.txt", "w") as f:
-                jd_text = request.job_description
-                f.write(jd_text)
-        
-        cv_evaluation_pipeline("uploads/test.pdf", jd_text)
-        with open("evaluation_result.json", "r") as f:
-            evaluation_result = json.load(f)
-        
-        # Extract position from cv_extracted.json
-        try:
-            with open("cv_extracted.json", "r") as f:
-                cv_data = json.load(f)
-                position = cv_data['personal_info'].get('desired_job', 'unknown')
-        except Exception as e:
-            position = "Unknown"
-            print(f"Error extracting position: {str(e)}")
-        
-        # Connect to PostgreSQL and update/insert position
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        username = request.username
-        # Kiểm tra user đã tồn tại chưa, nếu có thì update
-        cursor.execute("SELECT COUNT(*) FROM user_history WHERE user_name = %s", (username,))
-        user_exists = cursor.fetchone()[0]
-
-        if user_exists:
-            cursor.execute("""
-                UPDATE user_history
-                SET related_jobs = CASE
-                    WHEN NOT (%s = ANY(related_jobs)) THEN array_append(related_jobs, %s)
-                    ELSE related_jobs
-                END
-                WHERE user_name = %s
-            """, (position, position, username))
-        else:
-            # Nếu user chưa tồn tại, insert vào bảng
-            cursor.execute("""
-                INSERT INTO user_history (user_name, related_jobs)
-                VALUES (%s, %s)
-            """, (username, [position]))  # Chuyển position thành mảng
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return evaluation_result
+        cv_data = results['cv_json']
+        position = cv_data['personal_info'].get('desired_job', 'unknown')
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error loading evaluation result: {str(e)}")
+        position = "Unknown"
+        print(f"Error extracting position: {str(e)}")
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    username = username
+    cursor.execute("SELECT COUNT(*) FROM user_history WHERE user_name = %s", (username,))
+    user_exists = cursor.fetchone()[0]
 
-# Thêm endpoint cho phỏng vấn ảo
+    if user_exists:
+        cursor.execute("""
+            UPDATE user_history
+            SET related_jobs = CASE
+                WHEN NOT (%s = ANY(related_jobs)) THEN array_append(related_jobs, %s)
+                ELSE related_jobs
+            END
+            WHERE user_name = %s
+        """, (position, position, username))
+    else:
+        cursor.execute("""
+            INSERT INTO user_history (user_name, related_jobs)
+            VALUES (%s, %s)
+        """, (username, [position]))  
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    return evaluation_result
+
+@app.post("/evaluate")
+def evaluate(request: EvaluationRequest):
+    username = request.username
+    file_path = redis_client.get(f'username:{username}').decode()
+    jd_text = request.job_description
+    job = queue.enqueue(evaluate_resume, username=username, file_path=file_path, job_description=jd_text)
+    return JSONResponse({"job_id": job.get_id()})
+
+@app.get("/result/{job_id}")
+def get_result(request: Request, job_id: str):
+    job = queue.fetch_job(job_id)
+    if job is None or not job.is_finished:
+        return JSONResponse({"status": "pending"})
+    return JSONResponse({"status": "completed", "result": job.result})
+        
+
 @app.post("/interview-question")
 async def get_interview_question(request: InterviewQuestionRequest):
     try:
-        # Xây dựng prompt cho Groq LLM
         system_prompt = f"""
         You are an expert technical interviewer conducting a job interview.
         
@@ -230,15 +216,12 @@ async def get_interview_question(request: InterviewQuestionRequest):
         Focus on technical skills, experience, and problem-solving abilities relevant to the position.
         """
         
-        # Xây dựng lịch sử hội thoại cho LLM
         messages = [{"role": "system", "content": system_prompt}]
         
-        # Thêm lịch sử hội thoại
         for message in request.history:
             role = "assistant" if message.role == "interviewer" else "user"
             messages.append({"role": role, "content": message.content})
         
-        # Thêm prompt cho câu hỏi tiếp theo
         if len(request.history) > 0:
             messages.append({
                 "role": "system", 
@@ -250,21 +233,18 @@ async def get_interview_question(request: InterviewQuestionRequest):
                 "content": "Start the interview with a relevant question about the candidate's experience related to this job."
             })
         
-        # Gọi API Groq
         response = groq_client.chat.completions.create(
-            model="llama3-70b-8192",  # hoặc model khác của Groq
+            model="llama3-70b-8192", 
             messages=messages,
             temperature=0.7,
             max_tokens=200
         )
         
-        # Lấy câu hỏi từ phản hồi của LLM
         question = response.choices[0].message.content.strip()
         
         return {"question": question}
         
     except Exception as e:
-        # Fallback khi có lỗi
         fallback_questions = [
             "Could you tell me about your relevant experience for this position?",
             "What technical skills do you have that are most relevant to this job?",
@@ -278,7 +258,6 @@ async def get_interview_question(request: InterviewQuestionRequest):
 @app.post("/interview-feedback")
 async def get_interview_feedback(request: InterviewFeedbackRequest):
     try:
-        # Xây dựng prompt cho Groq LLM
         system_prompt = f"""
         You are an expert technical interviewer who has just completed an interview.
         
@@ -307,37 +286,30 @@ async def get_interview_feedback(request: InterviewFeedbackRequest):
         Ensure your response is valid JSON that can be parsed by Python's json.loads().
         """
         
-        # Xây dựng lịch sử hội thoại cho LLM
         messages = [{"role": "system", "content": system_prompt}]
         
-        # Thêm lịch sử hội thoại
         for message in request.history:
             role = "assistant" if message.role == "interviewer" else "user"
             messages.append({"role": role, "content": message.content})
         
-        # Thêm prompt yêu cầu phản hồi
         messages.append({
             "role": "system", 
             "content": "Analyze the interview and provide your assessment in the JSON format specified earlier."
         })
-        # Gọi API Groq
+        
         response = groq_client.chat.completions.create(
-            model="qwen-2.5-32b",  # hoặc model khác của Groq
+            model="qwen-2.5-32b",  
             messages=messages,
             temperature=0.7,
             max_tokens=1000
         )
         
-        # Lấy phản hồi từ LLM và chuyển đổi thành JSON
         feedback_text = response.choices[0].message.content.strip()
         
-        # Xử lý trường hợp khi phản hồi có thể chứa markdown hoặc các ký tự đặc biệt
-        # Tìm và trích xuất phần JSON từ phản hồi
         json_match = re.search(r'```json\s*([\s\S]*?)\s*```', feedback_text)
         if json_match:
             feedback_text = json_match.group(1)
         else:
-            # Tìm phần JSON bắt đầu từ { và kết thúc bằng }
             json_match = re.search(r'({[\s\S]*})', feedback_text)
             if json_match:
                 feedback_text = json_match.group(1)
@@ -345,7 +317,6 @@ async def get_interview_feedback(request: InterviewFeedbackRequest):
         try:
             feedback = json.loads(feedback_text)
         except json.JSONDecodeError:
-            # Nếu không parse được JSON, tạo một phản hồi mặc định
             feedback = {
                 "summary": "Based on the interview, the candidate demonstrated some relevant skills and experience for the position.",
                 "skills_assessment": [
@@ -365,7 +336,6 @@ async def get_interview_feedback(request: InterviewFeedbackRequest):
         return feedback
         
     except Exception as e:
-        # Fallback khi có lỗi
         return {
             "summary": "Thank you for completing the interview. Based on your responses, we can see that you have some relevant experience for this position.",
             "skills_assessment": [

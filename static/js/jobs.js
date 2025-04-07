@@ -2,8 +2,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     const username = localStorage.getItem('username');
     const jobList = document.getElementById('job-list');
     
-    // Keep the loading animation visible initially
-    // The rest of the content will be hidden via CSS
     
     async function get_jobs() {
         try {
@@ -24,20 +22,16 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         } catch (error) {
             console.error('Error:', error);
-            // Show error in the loading container instead of an alert
             const loadingContainer = document.getElementById('loading-animation');
             loadingContainer.innerHTML = `
                 <i class="fas fa-exclamation-circle" style="font-size: 3rem; color: #e74c3c; margin-bottom: 1rem;"></i>
                 <p>An error occurred while fetching jobs: ${error.message}</p>
             `;
-            return []; // Return empty array to avoid errors
+            return []; 
         }
     }
     
-    // Render job cards
     function renderJobs(jobsToRender) {
-        // Clear existing content, but keep the loading animation
-        // We'll hide it with CSS when we add the 'loaded' class
         const loadingAnimation = document.getElementById('loading-animation');
         jobList.innerHTML = '';
         jobList.appendChild(loadingAnimation);
@@ -71,10 +65,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             jobList.appendChild(jobCard);
         });
 
-        // Add the 'loaded' class to hide the loading animation and show the job cards
         jobList.classList.add('loaded');
 
-        // Add event listeners for save job buttons
         document.querySelectorAll('.save-job').forEach(button => {
             button.addEventListener('click', function (e) {
                 e.stopPropagation();
@@ -88,7 +80,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             });
         });
 
-        // Make entire job card clickable
         document.querySelectorAll('.job-card').forEach((card, index) => {
             card.addEventListener('click', function () {
                 window.open(jobsToRender[index].link, '_blank');
@@ -96,24 +87,19 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     }
 
-    // Fetch jobs and render when ready
     const jobs = await get_jobs();
     
-    // Initial render after jobs are loaded
     renderJobs(jobs);
 
-    // Filter buttons functionality
     const filterButtons = document.querySelectorAll('.filter-btn');
 
     filterButtons.forEach(button => {
         button.addEventListener('click', function () {
-            // Update active state
             filterButtons.forEach(btn => btn.classList.remove('active'));
             this.classList.add('active');
 
             const filter = this.textContent.toLowerCase();
 
-            // Filter jobs based on button
             let filteredJobs;
 
             if (filter === 'all') {
@@ -134,7 +120,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     });
 
-    // Search functionality
     const searchBar = document.querySelector('.search-bar input');
     const searchButton = document.querySelector('.search-bar button');
 

@@ -5,10 +5,22 @@ import wave
 from langchain_tavily import TavilySearch
 from langgraph.prebuilt import create_react_agent
 import json 
+import uuid
+import psycopg2
+from psycopg2 import extras
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 SAMPLERATE = 16000  
 SILENCE_THRESHOLD = 500  
 SILENCE_DURATION = 2  
+
+DB_HOST = os.getenv("DB_HOST")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME = os.getenv("DB_NAME")
 
 def is_silent(audio_chunk, silence_threshold=SILENCE_THRESHOLD):
     return np.max(np.abs(audio_chunk)) < silence_threshold
@@ -115,3 +127,21 @@ def save_json_jobs(groq_client, job_text):
             json.dump(cv_json, f, indent=2)
     except json.JSONDecodeError:
         print("Error: Could not parse JSON from response")
+        
+def generate_unique_filename(username: str, file_name: str):
+    extension = file_name.rsplit('.', 1)[1] if '.' in file_name else ''
+    # resume_id = str(uuid.uuid4()).replace('-','')
+    return f'{username}.{extension}'
+
+def get_db_connection():
+    try:
+        return psycopg2.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+    except Exception as e:
+        print("Database connection error:", e)
+        return None
+

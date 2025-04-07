@@ -7,5 +7,5 @@ __pycache__
 test 
 .vscode
 uploads 
-*.txt
+job_description.txt
 *.ipynb
