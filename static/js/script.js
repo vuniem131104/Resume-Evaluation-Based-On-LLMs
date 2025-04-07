@@ -204,8 +204,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const results = await res.json();
             const cv_result = results.result;
             const status = results.status;
-            console.log(cv_result);
-            console.log(status);
             if (status === 'completed') {
                 const evaluationResults = document.getElementById('evaluation-results');
                 const evaluationPlaceholder = document.getElementById('evaluation-placeholder');

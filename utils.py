@@ -123,10 +123,10 @@ def save_json_jobs(groq_client, job_text):
     
     try:
         cv_json = json.loads(response.choices[0].message.content)
-        with open("test.json", "w") as f:
-            json.dump(cv_json, f, indent=2)
+        return cv_json
     except json.JSONDecodeError:
         print("Error: Could not parse JSON from response")
+        return None
         
 def generate_unique_filename(username: str, file_name: str):
     extension = file_name.rsplit('.', 1)[1] if '.' in file_name else ''

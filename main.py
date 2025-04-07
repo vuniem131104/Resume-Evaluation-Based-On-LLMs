@@ -29,9 +29,10 @@ redis_client = redis.Redis(host="localhost", port=6379, db=0)
 
 
 RESUME_EVALUATION_QUEUE_NAME = "resume_evaluation_queue"
+RELATED_JOBS_QUEUE_NAME = "related_jobs_queue"
 redis_conn = redis.Redis()
-queue = Queue(RESUME_EVALUATION_QUEUE_NAME, connection=redis_conn)
-
+evaluation_queue = Queue(RESUME_EVALUATION_QUEUE_NAME, connection=redis_conn)
+getJobs_queue = Queue(RELATED_JOBS_QUEUE_NAME, connection=redis_conn)
 
     
 class EvaluationRequest(BaseModel):
@@ -191,12 +192,12 @@ def evaluate(request: EvaluationRequest):
     username = request.username
     file_path = redis_client.get(f'username:{username}').decode()
     jd_text = request.job_description
-    job = queue.enqueue(evaluate_resume, username=username, file_path=file_path, job_description=jd_text)
+    job = evaluation_queue.enqueue(evaluate_resume, username=username, file_path=file_path, job_description=jd_text)
     return JSONResponse({"job_id": job.get_id()})
 
 @app.get("/result/{job_id}")
 def get_result(request: Request, job_id: str):
-    job = queue.fetch_job(job_id)
+    job = evaluation_queue.fetch_job(job_id)
     if job is None or not job.is_finished:
         return JSONResponse({"status": "pending"})
     return JSONResponse({"status": "completed", "result": job.result})
@@ -362,11 +363,10 @@ async def start_recording_endpoint():
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-@app.post('/get_related_jobs')
-async def get_related_jobs(request: RelatedJobs):
+def get_jobs(username):
     conn = get_db_connection()
     cursor = conn.cursor()
-    username = request.username
+    username = username
     cursor.execute("SELECT related_jobs FROM user_history WHERE user_name = %s", (username,))
     result = cursor.fetchone()[0]
     jobs = set(result)
@@ -374,10 +374,21 @@ async def get_related_jobs(request: RelatedJobs):
     job_text = ''
     for job in jobs:
         job_text += get_job_text(groq_client, job, agent)
-    save_json_jobs(groq_client, job_text)
-    with open("test.json", "r") as f:
-        result = json.load(f)
-    return result
+    cv_json = save_json_jobs(groq_client, job_text)
+    return cv_json
+
+@app.post('/get_related_jobs')
+def get_related_jobs(request: RelatedJobs):
+    username = request.username
+    job = getJobs_queue.enqueue(get_jobs, username=username)
+    return JSONResponse({"job_id": job.get_id()})
+
+@app.get('/get_related_jobs_result/{job_id}')
+def get_related_jobs_result(request: Request, job_id: str):
+    job = getJobs_queue.fetch_job(job_id)
+    if job is None or not job.is_finished:
+        return JSONResponse({"status": "pending"})
+    return JSONResponse({"status": "completed", "result": job.result})
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)   
