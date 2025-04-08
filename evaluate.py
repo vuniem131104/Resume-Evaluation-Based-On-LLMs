@@ -12,9 +12,19 @@ client = Groq(api_key=groq_api_key)
 
 def standardize_jd_prompt(jd_text):
     prompt = f"""
-    You are a job description analysis expert. Please analyze the following JD and standardize it into a structured JSON format without saying anything else for me to parse it correctly.
+    You are a job description analysis expert. Please analyze the following job description and standardize it into a structured JSON format without saying anything else for me to parse it correctly.
+    The job description may be in Vietnamese. You MUST translate it to English BEFORE analyzing it. Always return the final result in English only.
+    
+    Your task:
+    1. Translate the following job description from Vietnamese to English first.
+    2. Then analyze the translated version and convert it into structured JSON format.
+    3. DO NOT include the translated text — only return the final JSON result.
 
-    JD to analyze:
+    IMPORTANT:
+    - DO NOT include code blocks like ```json or ```.
+    - DO NOT write any greeting, explanation, or wrapping.
+    - Only return the pure JSON object.
+    Job description to analyze:
     ```
     {jd_text}
     ```
@@ -51,13 +61,6 @@ def standardize_jd_prompt(jd_text):
                     "name": "Soft skill name",
                     "importance": "Importance level (1-10)"
                 }}
-            ],
-            "languages": [
-                {{
-                    "name": "Language name",
-                    "proficiency": "Proficiency level",
-                    "importance": "Importance level (1-10)"
-                }}
             ]
         }},
         "responsibilities": [
@@ -73,15 +76,13 @@ def standardize_jd_prompt(jd_text):
             }}
         ]
     }}
-
-    Please return only the JSON, without any additional explanatory text.
     """
     return prompt
 
 def evaluate_match_prompt(cv_json, jd_json):
     prompt = f"""
     You are an expert in evaluating the match between a candidate's CV and job requirements (JD). Please thoroughly analyze and assess how well the candidate fits the job position.
-
+    DO NOT ADD: "```json" or "```" or any explanation, greeting, or wrapping.
     Candidate's CV (JSON format):
     ```json
     {cv_json}
@@ -107,8 +108,7 @@ def evaluate_match_prompt(cv_json, jd_json):
        - Experience Score (0-30): Based on years of experience and relevance of experience.
        - Technical Skills Score (0-25): Based on the match and proficiency level of technical skills.
        - Soft Skills Score (0-10): Based on the match of soft skills.
-       - Language Score (0-10): Based on required language abilities.
-       - Projects and Achievements Score (0-10): Based on the relevance and impressiveness of projects and achievements.
+       - Projects and Achievements Score (0-20): Based on the relevance and impressiveness of projects and achievements.
 
     3. Conclusion:
        - Total Score (0-100): Sum of scores from the above criteria.
@@ -124,8 +124,7 @@ def evaluate_match_prompt(cv_json, jd_json):
             "experience_score": "Experience score (0-30)",
             "technical_skills_score": "Technical skills score (0-25)",
             "soft_skills_score": "Soft skills score (0-10)",
-            "language_score": "Language score (0-10)",
-            "projects_achievements_score": "Projects and achievements score (0-10)",
+            "projects_achievements_score": "Projects and achievements score (0-20)",
             "total_score": "Total score (0-100)"
         }},
         "analysis": {{
@@ -138,8 +137,6 @@ def evaluate_match_prompt(cv_json, jd_json):
             "recommendation": "Recommendation (Should interview / Need further consideration / Not suitable)"
         }}
     }}
-    
-    Please return only the JSON, without any additional explanatory text.
     """
     return prompt
 
@@ -153,10 +150,22 @@ def standardize_cv(text):
     """Standardize CV using Groq LLM"""
     prompt = f"""
     You are an AI assistant that formats raw extracted text into a structured resume. Please analyze the following text and standardize it into a structured JSON format without saying anything else for me to parse it correctly.
-    Below is the extracted text from a PDF file:
-    {text}
+    The input text may be in Vietnamese. You MUST translate it to English BEFORE analyzing it. Always return the final result in English only.
+    
+    Your task:
+    1. Translate the following raw text from Vietnamese to English first.
+    2. Then analyze the translated version and convert it into structured JSON format.
+    3. DO NOT include the translated text — only return the final JSON result.
 
-    Please return the result in the following JSON format:
+    IMPORTANT:
+    - DO NOT include code blocks like ```json or ```.
+    - DO NOT write any greeting, explanation, or wrapping.
+    - Only return the pure JSON object.
+    
+    Below is the extracted text from a PDF file:
+    "{text}"
+
+    Please return exactly the result in the following JSON format:
     {{
         "personal_info": {{
             "name": "Candidate's full name (if available)",
@@ -207,16 +216,15 @@ def standardize_cv(text):
             }}
         ]
     }}
-    Please return only the JSON, without any additional explanatory text.
     """
     response = client.chat.completions.create(
-        model="llama3-70b-8192",  
+        model="meta-llama/llama-4-scout-17b-16e-instruct",  
         messages=[
             {"role": "system", "content": "You are an expert in resume formatting."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.3,  
-        max_tokens=3000
+        max_completion_tokens=2048
     )
     
     try:
@@ -231,13 +239,13 @@ def standardize_jd(jd_text):
     prompt = standardize_jd_prompt(jd_text)
     
     response = client.chat.completions.create(
-        model="llama3-70b-8192",  
+        model="meta-llama/llama-4-scout-17b-16e-instruct",  
         messages=[
             {"role": "system", "content": "You are a job description analysis expert."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.1,  
-        max_tokens=3000
+        max_completion_tokens=2048
     )
     
     try:
@@ -253,13 +261,13 @@ def evaluate_match(cv_json, jd_json):
                                   json.dumps(jd_json))
     
     response = client.chat.completions.create(
-        model="llama3-70b-8192", 
+        model="meta-llama/llama-4-scout-17b-16e-instruct", 
         messages=[
             {"role": "system", "content": "You are an expert in evaluating the match between a candidate's CV and job requirements."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.2,  
-        max_tokens=4000
+        max_completion_tokens=4096
     )
     
     try:

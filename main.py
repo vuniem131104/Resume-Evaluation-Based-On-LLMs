@@ -24,7 +24,7 @@ load_dotenv()
 groq_api_key = os.getenv("GROQ_API_KEY")
 groq_client = Groq(api_key=groq_api_key)
 
-llm = ChatGroq(model="deepseek-r1-distill-llama-70b", api_key=groq_api_key)
+llm = ChatGroq(model="meta-llama/llama-4-scout-17b-16e-instruct", api_key=groq_api_key)
 redis_client = redis.Redis(host="localhost", port=6379, db=0)
 
 
@@ -237,8 +237,8 @@ async def get_interview_question(request: InterviewQuestionRequest):
         response = groq_client.chat.completions.create(
             model="llama3-70b-8192", 
             messages=messages,
-            temperature=0.7,
-            max_tokens=200
+            temperature=0.7,  
+            max_completion_tokens=512
         )
         
         question = response.choices[0].message.content.strip()
@@ -299,10 +299,10 @@ async def get_interview_feedback(request: InterviewFeedbackRequest):
         })
         
         response = groq_client.chat.completions.create(
-            model="qwen-2.5-32b",  
+            model="meta-llama/llama-4-scout-17b-16e-instruct",  
             messages=messages,
             temperature=0.7,
-            max_tokens=1000
+            max_tokens=1024
         )
         
         feedback_text = response.choices[0].message.content.strip()

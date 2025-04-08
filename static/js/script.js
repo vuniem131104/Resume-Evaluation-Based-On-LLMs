@@ -212,16 +212,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('experience-progress').style.width = `${cv_result.evaluation.experience_score * 3.33}%`;
                 document.getElementById('education-progress').style.width = `${cv_result.evaluation.education_score * 6.67}%`;
                 document.getElementById('soft-skills-progress').style.width = `${cv_result.evaluation.soft_skills_score * 10}%`;
-                document.getElementById('language-progress').style.width = `${cv_result.evaluation.language_score * 10}%`;
-                document.getElementById('projects-achievements-progress').style.width = `${cv_result.evaluation.projects_achievements_score * 10}%`;
+                // document.getElementById('language-progress').style.width = `${cv_result.evaluation.language_score * 10}%`;
+                document.getElementById('projects-achievements-progress').style.width = `${cv_result.evaluation.projects_achievements_score * 5}%`;
                 document.getElementById('overall-progress').style.width = `${cv_result.evaluation.total_score}%`;
 
                 document.getElementById('skills-score').textContent = `${cv_result.evaluation.technical_skills_score}/25`;
                 document.getElementById('experience-score').textContent = `${cv_result.evaluation.experience_score}/30`;
                 document.getElementById('education-score').textContent = `${cv_result.evaluation.education_score}/15`;
                 document.getElementById('soft-skills-score').textContent = `${cv_result.evaluation.soft_skills_score}/10`;
-                document.getElementById('language-score').textContent = `${cv_result.evaluation.language_score}/10`;
-                document.getElementById('projects-achievements-score').textContent = `${cv_result.evaluation.projects_achievements_score}/10`;
+                // document.getElementById('language-score').textContent = `${cv_result.evaluation.language_score}/10`;
+                document.getElementById('projects-achievements-score').textContent = `${cv_result.evaluation.projects_achievements_score}/20`;
                 document.getElementById('overall-score').textContent = `${cv_result.evaluation.total_score}/100`;
 
                 const suggestionList = document.getElementById('suggestion-list');
