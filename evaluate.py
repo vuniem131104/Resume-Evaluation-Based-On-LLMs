@@ -253,12 +253,12 @@ def evaluate_match(cv_json, jd_json):
                                   json.dumps(jd_json))
     
     response = client.chat.completions.create(
-        model="llama3-70b-8192",  # Use appropriate Groq model
+        model="llama3-70b-8192", 
         messages=[
             {"role": "system", "content": "You are an expert in evaluating the match between a candidate's CV and job requirements."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.2,  # Low temperature for consistent results but allowing some creativity in analysis
+        temperature=0.2,  
         max_tokens=4000
     )
     
