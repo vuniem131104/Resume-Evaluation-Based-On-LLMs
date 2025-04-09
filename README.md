@@ -7,8 +7,7 @@ A smart, asynchronous resume evaluation system powered by LLMs, Redis, and FastA
 - **FastAPI** – API server
 - **Redis** – Message queue and temporary result store
 - **RQ / Celery** – Asynchronous task handling (e.g., resume evaluation)
-- **Meta LLM** – Used for text extraction, job/resume standardization and evaluate by matching between standardized json files
-- **Qwen 2.5** – Personalized feedback generation
+- **Llama 4** – Used for text extraction, job/resume standardization and evaluate content and layout of the resume. Also, it will serve as a virtual recruiter and give personalized feedback
 - **OpenAI Whisper** – Voice recognition for virtual interviews
 - **Tavily + Web Search Agent** – Recent job recommendations
 - **PostgreSQL** – User history and job storage, user database
@@ -20,8 +19,7 @@ A smart, asynchronous resume evaluation system powered by LLMs, Redis, and FastA
 
 ### 1. Resume Evaluation Flow
 
-![pipeline](https://github.com/user-attachments/assets/f7beaabd-8bc4-4674-8bc0-7ad50a920aca)
-
+![pipeline](https://github.com/user-attachments/assets/40f75ec5-7624-4539-9e13-4c62e0013cea)
 
 - **Step 1**: Users upload their **resume** and provide the **job description**.
 - **Step 2**: The system asynchronously extracts and standardizes text from both the resume and the job description using LLMs.
@@ -39,7 +37,7 @@ A smart, asynchronous resume evaluation system powered by LLMs, Redis, and FastA
 
 ### 3. Job Recommendation via Web Search Agent
 
-![agent](https://github.com/user-attachments/assets/ce2733a7-4284-47e1-8822-f3997fccbe95)
+![agent](https://github.com/user-attachments/assets/986a83f0-c182-4bb4-9f75-af56cd0dc805)
 
 
 - **Input**: User submits a request to find relevant jobs.
