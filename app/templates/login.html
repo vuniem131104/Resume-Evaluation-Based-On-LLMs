@@ -52,7 +52,7 @@
 
         if (response.redirected) {
             const username = formData.get("username");
-            localStorage.setItem("username", username); // Lưu vào localStorage
+            sessionStorage.setItem("username", username); // Lưu vào localStorage
             window.location.href = response.url; // Chuyển hướng về dashboard
         } else {
             const html = await response.text();

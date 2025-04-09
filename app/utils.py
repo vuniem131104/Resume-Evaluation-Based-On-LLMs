@@ -6,8 +6,10 @@ from langchain_tavily import TavilySearch
 from langgraph.prebuilt import create_react_agent
 import json 
 import uuid
+import base64
 import psycopg2
 from psycopg2 import extras
+from pdf2image import convert_from_path
 from dotenv import load_dotenv
 import os
 
@@ -16,9 +18,10 @@ load_dotenv()
 SAMPLERATE = 16000  
 SILENCE_THRESHOLD = 500  
 SILENCE_DURATION = 2  
+TEMP_IMAGES_FOLDER = "temp_images" 
 
-DB_HOST = os.getenv("DB_HOST")
-DB_USER = os.getenv("DB_USER")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_USER = os.getenv("DB_USER", 'postgres')
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
 
@@ -61,21 +64,30 @@ def create_agent(llm):
     agent = create_react_agent(llm, [tavily_search_tool])
     return agent 
 
-def get_job_text(groq_client, job_title, agent):
+def get_job_text(job_title, agent):
     user_input = f"""
-    Search for the best available job listings for a '{job_title}' position located in Hanoi, Vietnam.
-    Only include jobs posted within the last 14 days.
-    Focus on high-quality opportunities from top companies or startups in the relevant field.
-    For each job, provide:
-    1. Job title
-    2. Company name
-    3. Location
-    4. Short job description
-    5. Direct link to the job posting (do not fake the link)
-    6. Date posted
+    You are a job search assistant. Your task is to find the top 5 **most relevant and high-quality** job listings for the position of **'{job_title}'** in **Vietnam**.
 
-    Only include jobs that are specifically related to the '{job_title}' role (not unrelated listings).
-    Return exactly 5 of the most relevant listings.
+    Strict requirements:
+    - The jobs **must be directly related** to the '{job_title}' role (e.g., matching title and relevant responsibilities).
+    - Only include listings **posted within the last 14 days**.
+    - Prioritize roles from **well-known companies, innovative startups, or industry leaders**.
+    - Avoid duplicate, generic, or irrelevant listings.
+
+    For each job, return **exactly and only** the following:
+    1. **Job Title**
+    2. **Company Name**
+    3. **Location**
+    4. **Concise Job Description** (max 3 sentences)
+    5. **Direct and valid job posting link**
+    6. **Date Posted** (e.g., "April 8, 2025")
+
+    Additional Instructions:
+    - Make sure each listing is **unique, verified**, and currently **open for applications**.
+    - Do not fabricate or assume job links—include only real links.
+    - Keep the response clean, well-formatted, and easy to read.
+
+    Your output should be a numbered list of exactly **5** listings.
     """
     
     all_steps = []
@@ -108,7 +120,7 @@ def save_json_jobs(groq_client, job_text):
 
     Here is the job listings text:
 
-    {job_text}
+    "{job_text}"
     """
     
     response = groq_client.chat.completions.create(
@@ -117,7 +129,7 @@ def save_json_jobs(groq_client, job_text):
             {"role": "system", "content": "You extract structured JSON from text."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.3,  
+        temperature=0.2,  
         max_tokens=3000
     )
     
@@ -145,3 +157,24 @@ def get_db_connection():
         print("Database connection error:", e)
         return None
 
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+    return encoded_string
+
+def pdf_to_images(user_name, pdf_path):
+    """Convert PDF to a list of images, one per page"""
+    try:
+        images = convert_from_path(pdf_path)
+        
+        image_paths = []
+ 
+        for i, image in enumerate(images):
+            image_path = os.path.join(TEMP_IMAGES_FOLDER, f"{user_name}_page_{i+1}.jpeg")
+            image.save(image_path, "JPEG")
+            image_paths.append(image_path)
+            
+        return image_paths
+    except Exception as e:
+        print(f"Error converting PDF to images: {e}")
+        return []

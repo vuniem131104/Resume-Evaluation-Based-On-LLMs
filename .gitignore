@@ -1,6 +1,4 @@
 .env
-test.py
-vu.py 
 *.wav 
 *.json 
 __pycache__

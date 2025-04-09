@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const backToEvaluationBtn = document.getElementById('back-to-evaluation-btn');
     const recordingBtn = document.getElementById('record-answer-btn')
 
-    const username = localStorage.getItem("username");
+    const username = sessionStorage.getItem("username");
 
     let uploadedFileName = '';
     let fileUploaded = false;
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            localStorage.setItem('jobDescription', jdText);
+            sessionStorage.setItem('jobDescription', jdText);
             alert('Job description saved!');
             jdSaved = true;
             checkEvaluateButtonState();
@@ -142,14 +142,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (clearJdBtn) {
         clearJdBtn.addEventListener('click', function () {
             jobDescriptionInput.value = '';
-            localStorage.removeItem('jobDescription');
+            sessionStorage.removeItem('jobDescription');
             jdSaved = false;
             checkEvaluateButtonState();
         });
     }
 
-    if (jobDescriptionInput && localStorage.getItem('jobDescription')) {
-        jobDescriptionInput.value = localStorage.getItem('jobDescription');
+    if (jobDescriptionInput && sessionStorage.getItem('jobDescription')) {
+        jobDescriptionInput.value = sessionStorage.getItem('jobDescription');
         jdSaved = true;
         checkEvaluateButtonState();
     }
@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     evaluationPlaceholder.innerHTML = '<p>Evaluating resume... Please wait.</p>';
                 }
 
-                const jobDescription = localStorage.getItem('jobDescription');
+                const jobDescription = sessionStorage.getItem('jobDescription');
 
                 const response = await fetch('/evaluate', {
                     method: 'POST',
@@ -203,26 +203,29 @@ document.addEventListener('DOMContentLoaded', function () {
             const res = await fetch(url);
             const results = await res.json();
             const cv_result = results.result;
+            // console.log(cv_result);
             const status = results.status;
             if (status === 'completed') {
                 const evaluationResults = document.getElementById('evaluation-results');
                 const evaluationPlaceholder = document.getElementById('evaluation-placeholder');
 
-                document.getElementById('skills-progress').style.width = `${cv_result.evaluation.technical_skills_score * 4}%`;
-                document.getElementById('experience-progress').style.width = `${cv_result.evaluation.experience_score * 3.33}%`;
-                document.getElementById('education-progress').style.width = `${cv_result.evaluation.education_score * 6.67}%`;
-                document.getElementById('soft-skills-progress').style.width = `${cv_result.evaluation.soft_skills_score * 10}%`;
-                // document.getElementById('language-progress').style.width = `${cv_result.evaluation.language_score * 10}%`;
-                document.getElementById('projects-achievements-progress').style.width = `${cv_result.evaluation.projects_achievements_score * 5}%`;
-                document.getElementById('overall-progress').style.width = `${cv_result.evaluation.total_score}%`;
+                document.getElementById('skills-progress').style.width = `${cv_result.content_evaluation.evaluation.technical_skills_score * 5}%`;
+                document.getElementById('experience-progress').style.width = `${cv_result.content_evaluation.evaluation.experience_score * 5}%`;
+                document.getElementById('education-progress').style.width = `${cv_result.content_evaluation.evaluation.education_score * 10}%`;
+                document.getElementById('soft-skills-progress').style.width = `${cv_result.content_evaluation.evaluation.soft_skills_score * 10}%`;
+                // document.getElementById('language-progress').style.width = `${cv_result.content_evaluation.evaluation.language_score * 10}%`;
+                document.getElementById('projects-achievements-progress').style.width = `${cv_result.content_evaluation.evaluation.projects_achievements_score * 5}%`;
+                document.getElementById('layout-progress').style.width = `${cv_result.layout_evaluation.overall_layout_score * 5}%`;
+                document.getElementById('overall-progress').style.width = `${Number(cv_result.content_evaluation.evaluation.total_score) + Number(cv_result.layout_evaluation.overall_layout_score)}%`;
 
-                document.getElementById('skills-score').textContent = `${cv_result.evaluation.technical_skills_score}/25`;
-                document.getElementById('experience-score').textContent = `${cv_result.evaluation.experience_score}/30`;
-                document.getElementById('education-score').textContent = `${cv_result.evaluation.education_score}/15`;
-                document.getElementById('soft-skills-score').textContent = `${cv_result.evaluation.soft_skills_score}/10`;
-                // document.getElementById('language-score').textContent = `${cv_result.evaluation.language_score}/10`;
-                document.getElementById('projects-achievements-score').textContent = `${cv_result.evaluation.projects_achievements_score}/20`;
-                document.getElementById('overall-score').textContent = `${cv_result.evaluation.total_score}/100`;
+                document.getElementById('skills-score').textContent = `${cv_result.content_evaluation.evaluation.technical_skills_score}/20`;
+                document.getElementById('experience-score').textContent = `${cv_result.content_evaluation.evaluation.experience_score}/20`;
+                document.getElementById('education-score').textContent = `${cv_result.content_evaluation.evaluation.education_score}/10`;
+                document.getElementById('soft-skills-score').textContent = `${cv_result.content_evaluation.evaluation.soft_skills_score}/10`;
+                // document.getElementById('language-score').textContent = `${cv_result.content_evaluation.evaluation.language_score}/10`;
+                document.getElementById('projects-achievements-score').textContent = `${cv_result.content_evaluation.evaluation.projects_achievements_score}/20`;
+                document.getElementById('layout-score').textContent = `${cv_result.layout_evaluation.overall_layout_score}/20`;
+                document.getElementById('overall-score').textContent = `${Number(cv_result.content_evaluation.evaluation.total_score) + Number(cv_result.layout_evaluation.overall_layout_score)}/100`;
 
                 const suggestionList = document.getElementById('suggestion-list');
                 suggestionList.innerHTML = '';
@@ -231,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 strengthsHeader.textContent = 'Strengths:';
                 suggestionList.appendChild(strengthsHeader);
 
-                cv_result.analysis.strengths.forEach(strength => {
+                cv_result.content_evaluation.analysis.strengths.forEach(strength => {
                     const li = document.createElement('li');
                     li.textContent = strength;
                     li.classList.add('strength');
@@ -243,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 weaknessesHeader.style.marginTop = '15px';
                 suggestionList.appendChild(weaknessesHeader);
 
-                cv_result.analysis.weaknesses.forEach(weakness => {
+                cv_result.content_evaluation.analysis.weaknesses.forEach(weakness => {
                     const li = document.createElement('li');
                     li.textContent = weakness;
                     li.classList.add('weakness');
@@ -254,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 recommendationDiv.classList.add('recommendation');
                 recommendationDiv.innerHTML = `
                 <h5>Recommendation:</h5>
-                <p>${cv_result.analysis.recommendation}</p>`;
+                <p>${cv_result.content_evaluation.analysis.recommendation}</p>`;
                 suggestionList.appendChild(recommendationDiv);
 
                 evaluationResults.classList.remove('hidden');
@@ -287,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             showTypingIndicator();
 
-            const jobDescription = localStorage.getItem('jobDescription');
+            const jobDescription = sessionStorage.getItem('jobDescription');
 
             const response = await fetch('/interview-question', {
                 method: 'POST',
@@ -417,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function () {
             try {
                 showTypingIndicator();
 
-                const jobDescription = localStorage.getItem('jobDescription');
+                const jobDescription = sessionStorage.getItem('jobDescription');
 
                 const response = await fetch('/interview-question', {
                     method: 'POST',
@@ -490,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 addInterviewerMessage("Thank you for completing the interview! I'm now analyzing your responses to provide personalized feedback.");
 
-                const jobDescription = localStorage.getItem('jobDescription');
+                const jobDescription = sessionStorage.getItem('jobDescription');
 
                 const response = await fetch('/interview-feedback', {
                     method: 'POST',

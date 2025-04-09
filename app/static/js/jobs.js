@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async function () {
-    const username = localStorage.getItem('username');
+    const username = sessionStorage.getItem('username');
     const jobList = document.getElementById('job-list');
 
 

@@ -24,7 +24,7 @@ load_dotenv()
 groq_api_key = os.getenv("GROQ_API_KEY")
 groq_client = Groq(api_key=groq_api_key)
 
-llm = ChatGroq(model="meta-llama/llama-4-scout-17b-16e-instruct", api_key=groq_api_key)
+llm = ChatGroq(model="deepseek-r1-distill-llama-70b", api_key=groq_api_key)
 redis_client = redis.Redis(host="localhost", port=6379, db=0)
 
 
@@ -59,6 +59,33 @@ app = FastAPI(title="Resume Evaluation System")
 UPLOAD_FOLDER = "uploads"
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+   
+TEMP_IMAGES_FOLDER = "temp_images" 
+if not os.path.exists(TEMP_IMAGES_FOLDER):
+    os.makedirs(TEMP_IMAGES_FOLDER)
+    
+def create_tables():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        user_name VARCHAR(255) UNIQUE NOT NULL,
+        password TEXT NOT NULL
+    );
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_history (
+        user_name VARCHAR(255) UNIQUE NOT NULL,
+        related_jobs TEXT[]
+    );
+    """)
+    conn.commit()  
+    cursor.close()
+    conn.close()
+    print("Database tables created successfully.")
+
+create_tables()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -150,8 +177,9 @@ async def upload_file(username: str = Form(...), file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 def evaluate_resume(username, file_path, job_description):
-    results = cv_evaluation_pipeline(file_path, job_description)
-    evaluation_result = results['evaluation']
+    results = cv_evaluation_pipeline(username, file_path, job_description)
+    content_evaluation = results['content_evaluation']
+    layout_evaluation = results['layout_evaluation']
     
     try:
         cv_data = results['cv_json']
@@ -185,7 +213,10 @@ def evaluate_resume(username, file_path, job_description):
     cursor.close()
     conn.close()
     
-    return evaluation_result
+    return {
+        "content_evaluation": content_evaluation,
+        "layout_evaluation": layout_evaluation,
+    }
 
 @app.post("/evaluate")
 def evaluate(request: EvaluationRequest):
@@ -364,18 +395,26 @@ async def start_recording_endpoint():
         return {"success": False, "error": str(e)}
 
 def get_jobs(username):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    username = username
-    cursor.execute("SELECT related_jobs FROM user_history WHERE user_name = %s", (username,))
-    result = cursor.fetchone()[0]
-    jobs = set(result)
-    agent = create_agent(llm)
-    job_text = ''
-    for job in jobs:
-        job_text += get_job_text(groq_client, job, agent)
-    cv_json = save_json_jobs(groq_client, job_text)
-    return cv_json
+    if not redis_client.exists(f'jobs:{username}'):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        username = username
+        cursor.execute("SELECT related_jobs FROM user_history WHERE user_name = %s", (username,))
+        result = cursor.fetchone()[0]
+        jobs = set(result)
+        agent = create_agent(llm)
+        job_text = ''
+        for job in jobs:
+            job_text += get_job_text(job, agent)
+        cv_json = save_json_jobs(groq_client, job_text)
+        redis_client.set(f'jobs:{username}', json.dumps(cv_json))
+        # with open('jobs.json', 'w') as f:
+        #     json.dump(cv_json, f, indent=2)
+        return cv_json
+    else:
+        jobs = redis_client.get(f'jobs:{username}')
+        jobs = json.loads(jobs.decode())
+        return jobs
 
 @app.post('/get_related_jobs')
 def get_related_jobs(request: RelatedJobs):
