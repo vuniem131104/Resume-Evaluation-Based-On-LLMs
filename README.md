@@ -74,10 +74,12 @@ pip install -r requirements.txt
 # 3. Start Redis server
 redis-server
 
-# 4. Run the FastAPI app
+# 4. Create .env file similar to .env.example in this repo then put it into folder app/
+
+# 5. Run the FastAPI app
 uvicorn app.main:app --reload
 
-# 5. In another terminal, start the workers
+# 6. In another terminal, start the workers
 python resume_evaluation_worker.py # for resume evaluation worker
 python related_jobs_worker.py # for related jobs retrieval worker
 ```
