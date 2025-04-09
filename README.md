@@ -60,6 +60,7 @@ A smart, asynchronous resume evaluation system powered by LLMs, Redis, and FastA
 
 ## 🧪 How to Run Locally
 
+### 1. Clone Repo
 ```bash
 # 1. Clone the repo
 git clone https://github.com/your-username/Resume-Evaluation-Based-On-LLMs.git
@@ -79,6 +80,20 @@ uvicorn app.main:app --reload
 # 5. In another terminal, start the workers
 python resume_evaluation_worker.py # for resume evaluation worker
 python related_jobs_worker.py # for related jobs retrieval worker
+```
+
+### 2. Docker
+Make sure that you have installed docker and docker-compose in your local machine :)))
+```bash
+# 1. Create a directory in your local machine
+mkdir resume-application && cd resume-application
+
+# 2. Copy docker-compose.yml in this repo into the directory
+
+# 3. Create .env file similar to .env.example in this repo
+
+# 4. Run Application
+docker-compose up -d
 ```
 
 ---
