@@ -1,8 +1,14 @@
 from rq import Worker, Queue
 from redis import Redis
-RELATED_JOBS_QUEUE_NAME = "related_jobs_queue"
+import os 
+from dotenv import load_dotenv
 
-conn = Redis(host='localhost', port=6379)
+load_dotenv()
+
+RELATED_JOBS_QUEUE_NAME = "related_jobs_queue"
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+
+conn = Redis(host=REDIS_HOST, port=6379)
 
 if __name__ == '__main__':
     queues = [Queue(RELATED_JOBS_QUEUE_NAME, connection=conn)]

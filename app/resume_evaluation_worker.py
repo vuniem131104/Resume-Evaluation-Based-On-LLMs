@@ -1,11 +1,14 @@
 from redis import Redis
 from rq import Worker, Queue
+import os 
+from dotenv import load_dotenv
 
-# Define queue name
+load_dotenv()
+
 RESUME_EVALUATION_QUEUE_NAME = "resume_evaluation_queue"
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 
-# Create Redis connection
-conn = Redis(host='localhost', port=6379)
+conn = Redis(host=REDIS_HOST, port=6379)
 
 if __name__ == '__main__':
     # Create queues with explicit connection

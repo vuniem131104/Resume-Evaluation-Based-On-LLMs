@@ -10,20 +10,12 @@ import base64
 import psycopg2
 from psycopg2 import extras
 from pdf2image import convert_from_path
-from dotenv import load_dotenv
 import os
-
-load_dotenv()
 
 SAMPLERATE = 16000  
 SILENCE_THRESHOLD = 500  
 SILENCE_DURATION = 2  
 TEMP_IMAGES_FOLDER = "temp_images" 
-
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_USER = os.getenv("DB_USER", 'postgres')
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_NAME = os.getenv("DB_NAME")
 
 def is_silent(audio_chunk, silence_threshold=SILENCE_THRESHOLD):
     return np.max(np.abs(audio_chunk)) < silence_threshold
@@ -145,18 +137,19 @@ def generate_unique_filename(username: str, file_name: str):
     # resume_id = str(uuid.uuid4()).replace('-','')
     return f'{username}.{extension}'
 
-def get_db_connection():
+def get_db_connection(db_host, db_name, db_user, db_password):
     try:
         return psycopg2.connect(
-            host=DB_HOST,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD
+            host=db_host,
+            database=db_name,
+            user=db_user,
+            password=db_password,
+            port=5432
         )
     except Exception as e:
         print("Database connection error:", e)
         return None
-
+    
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode('utf-8')

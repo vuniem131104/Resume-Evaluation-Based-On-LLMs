@@ -22,15 +22,18 @@ from rq import Queue
 load_dotenv()
 
 groq_api_key = os.getenv("GROQ_API_KEY")
+REDIS_HOST = os.getenv("REDIS_HOST", 'localhost')
+DB_HOST = os.getenv("DB_HOST", 'localhost')
+DB_NAME = os.getenv("POSTGRES_DB", 'postgres')
+DB_USER = os.getenv("POSTGRES_USER", 'postgres')
+DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", 'postgres')
 groq_client = Groq(api_key=groq_api_key)
 
 llm = ChatGroq(model="deepseek-r1-distill-llama-70b", api_key=groq_api_key)
-redis_client = redis.Redis(host="localhost", port=6379, db=0)
-
 
 RESUME_EVALUATION_QUEUE_NAME = "resume_evaluation_queue"
 RELATED_JOBS_QUEUE_NAME = "related_jobs_queue"
-redis_conn = redis.Redis()
+redis_conn = redis.Redis(host=REDIS_HOST, port=6379, db=0)
 evaluation_queue = Queue(RESUME_EVALUATION_QUEUE_NAME, connection=redis_conn)
 getJobs_queue = Queue(RELATED_JOBS_QUEUE_NAME, connection=redis_conn)
 
@@ -65,7 +68,7 @@ if not os.path.exists(TEMP_IMAGES_FOLDER):
     os.makedirs(TEMP_IMAGES_FOLDER)
     
 def create_tables():
-    conn = get_db_connection()
+    conn = get_db_connection(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -85,7 +88,6 @@ def create_tables():
     conn.close()
     print("Database tables created successfully.")
 
-create_tables()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -102,7 +104,7 @@ async def login_page(request: Request, message: Optional[str] = None):
 
 @app.post("/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
-    conn = get_db_connection()
+    conn = get_db_connection(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
     if not conn:
         return {"error": "Database connection failed"}
 
@@ -133,7 +135,7 @@ async def register_page(request: Request, message: Optional[str] = None):
 
 @app.post("/register")
 async def register(request: Request, username: str = Form(...), password: str = Form(...)):
-    conn = get_db_connection()
+    conn = get_db_connection(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
     if not conn:
         return {"error": "Database connection failed"}
     
@@ -169,14 +171,20 @@ async def upload_file(username: str = Form(...), file: UploadFile = File(...)):
     try:
         file_name = generate_unique_filename(username, file.filename)
         file_location = os.path.join(UPLOAD_FOLDER, file_name)
-        with open(file_location, "wb") as file_object:
-            shutil.copyfileobj(file.file, file_object)
-        redis_client.set(f'username:{username}', str(file_location))
-        return {"filename": file_name, "status": "success"}
+        try:
+            with open(file_location, "wb") as file_object:
+                shutil.copyfileobj(file.file, file_object)
+            redis_conn.set(f'username:{username}', str(file_location))
+            return {"filename": file_name, "status": "success"}
+        except Exception as e:
+            print(f"Error saving file: {str(e)}")
+            return {"error": str(e), "status": "error"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 def evaluate_resume(username, file_path, job_description):
+    print(f"DB Connection Params: Host={DB_HOST}, DB={DB_NAME}, User={DB_USER}")
+
     results = cv_evaluation_pipeline(username, file_path, job_description)
     content_evaluation = results['content_evaluation']
     layout_evaluation = results['layout_evaluation']
@@ -188,7 +196,7 @@ def evaluate_resume(username, file_path, job_description):
         position = "Unknown"
         print(f"Error extracting position: {str(e)}")
     
-    conn = get_db_connection()
+    conn = get_db_connection(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
     cursor = conn.cursor()
     username = username
     cursor.execute("SELECT COUNT(*) FROM user_history WHERE user_name = %s", (username,))
@@ -221,7 +229,7 @@ def evaluate_resume(username, file_path, job_description):
 @app.post("/evaluate")
 def evaluate(request: EvaluationRequest):
     username = request.username
-    file_path = redis_client.get(f'username:{username}').decode()
+    file_path = redis_conn.get(f'username:{username}').decode()
     jd_text = request.job_description
     job = evaluation_queue.enqueue(evaluate_resume, username=username, file_path=file_path, job_description=jd_text)
     return JSONResponse({"job_id": job.get_id()})
@@ -395,8 +403,8 @@ async def start_recording_endpoint():
         return {"success": False, "error": str(e)}
 
 def get_jobs(username):
-    if not redis_client.exists(f'jobs:{username}'):
-        conn = get_db_connection()
+    if not redis_conn.exists(f'jobs:{username}'):
+        conn = get_db_connection(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
         cursor = conn.cursor()
         username = username
         cursor.execute("SELECT related_jobs FROM user_history WHERE user_name = %s", (username,))
@@ -407,12 +415,12 @@ def get_jobs(username):
         for job in jobs:
             job_text += get_job_text(job, agent)
         cv_json = save_json_jobs(groq_client, job_text)
-        redis_client.set(f'jobs:{username}', json.dumps(cv_json))
+        redis_conn.set(f'jobs:{username}', json.dumps(cv_json))
         # with open('jobs.json', 'w') as f:
         #     json.dump(cv_json, f, indent=2)
         return cv_json
     else:
-        jobs = redis_client.get(f'jobs:{username}')
+        jobs = redis_conn.get(f'jobs:{username}')
         jobs = json.loads(jobs.decode())
         return jobs
 
@@ -430,4 +438,6 @@ def get_related_jobs_result(request: Request, job_id: str):
     return JSONResponse({"status": "completed", "result": job.result})
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)   
+    print(f"Connect with redis at {REDIS_HOST} and postgres at {DB_HOST}")
+    create_tables()
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)   

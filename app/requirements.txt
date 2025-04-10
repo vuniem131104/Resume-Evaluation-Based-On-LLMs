@@ -6,7 +6,6 @@ rq
 psycopg2-binary
 langgraph 
 langchain_tavily
-wave
 openai-whisper
 numpy 
 sounddevice
@@ -16,3 +15,4 @@ pydantic
 bcrypt 
 langchain_groq
 pdf2image
+python-multipart
