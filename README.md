@@ -106,7 +106,9 @@ python related_jobs_worker.py # for related jobs retrieval worker
 ### 2. Docker
 - Make sure that you have installed docker and docker-compose in your local machine :)))
 - Your folder structur will look like this:
+  
 resume-application/
+
 ├── uploads/               
 ├── .env                   
 └── docker-compose.yml
