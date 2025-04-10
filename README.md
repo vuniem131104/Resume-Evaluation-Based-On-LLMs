@@ -2,6 +2,25 @@
 
 A smart, asynchronous resume evaluation system powered by LLMs, Redis, and FastAPI. This system allows users to upload resumes, job descriptions and receive both general and personalized feedback through automated evaluation and virtual interviews.
 
+## 🖥️ User Interface
+
+### 1. Main
+- Users upload their resumes and job descriptions here
+
+![main1](https://github.com/user-attachments/assets/058a60e2-78c2-48a0-ac24-edce3a6e5065)
+
+- Then, click "Evaluate Resume" button and receive result
+
+![main2](https://github.com/user-attachments/assets/46efc1e0-c41e-45e9-a977-6ba557a865ce)
+
+- Virtual Interview
+  
+![main3](https://github.com/user-attachments/assets/e498d49a-ce9a-4841-bc03-cf7ccf66aeb6)
+
+- Jobs recommedation based on users' history
+  
+![jobs](https://github.com/user-attachments/assets/470f5f6e-e2f1-4c4a-aceb-c39e6c4554ee)
+
 ## 🔧 Tech Stack
 
 - **FastAPI** – API server
