@@ -1,0 +1,61 @@
+version: "3.8"
+services:
+  app: 
+    image: vuniem131104/resume-evaluation:app
+    command: ["sh", "-c", "sleep 10 && python3 main.py"]
+    ports:
+      - '8000:8000'
+    depends_on:
+      - db 
+      - redis
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+      - REDIS_HOST=redis
+    volumes:
+      - ./uploads:/app/uploads
+
+  resume_worker:
+    image: vuniem131104/resume-evaluation:resume-worker
+    command: ["python3", "resume_evaluation_worker.py"]
+    depends_on: 
+     - redis
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - DB_HOST=db
+    volumes:
+      - ./uploads:/app/uploads
+ 
+  related_jobs_worker:
+    image: vuniem131104/resume-evaluation:related-jobs-worker
+    command: ["python3", "related_jobs_worker.py"] 
+    depends_on: 
+     - redis
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - DB_HOST=db
+    volumes:
+      - ./uploads:/app/uploads
+
+  redis:
+    image: redis:6
+    restart: always
+    volumes:
+      - redis_data:/data
+
+  db:
+    image: postgres:14
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+  redis_data:
