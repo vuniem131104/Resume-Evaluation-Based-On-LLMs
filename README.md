@@ -83,7 +83,7 @@ A smart, asynchronous resume evaluation system powered by LLMs, Redis, and FastA
 ```bash
 # 1. Clone the repo
 git clone https://github.com/your-username/Resume-Evaluation-Based-On-LLMs.git
-cd Resume-Evaluation-Based-On-LLMs
+cd Resume-Evaluation-Based-On-LLMs/app
 
 # 2. Set up virtual environment and install dependencies
 python -m venv venv
@@ -96,7 +96,7 @@ redis-server
 # 4. Create .env file similar to .env.example in this repo then put it into folder app/
 
 # 5. Run the FastAPI app
-uvicorn app.main:app --reload
+python main.py
 
 # 6. In another terminal, start the workers
 python resume_evaluation_worker.py # for resume evaluation worker
@@ -104,12 +104,19 @@ python related_jobs_worker.py # for related jobs retrieval worker
 ```
 
 ### 2. Docker
-Make sure that you have installed docker and docker-compose in your local machine :)))
-```bash
-# 1. Create a directory in your local machine
-mkdir resume-application && cd resume-application
+- Make sure that you have installed docker and docker-compose in your local machine :)))
+- Your folder structur will look like this:
+resume-application/
+├── uploads/               
+├── .env                   
+└── docker-compose.yml
 
-# 2. Copy docker-compose.yml in this repo into the directory
+```bash
+# 1. Create a folder in your local machine
+mkdir resume-application && cd resume-application
+mkdir uploads
+
+# 2. Copy docker-compose-user.yml in this repo into the folder
 
 # 3. Create .env file similar to .env.example in this repo
 
