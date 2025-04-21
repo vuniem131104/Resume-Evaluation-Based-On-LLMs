@@ -3,7 +3,7 @@ pypdf
 dotenv 
 redis 
 rq
-psycopg2-binary
+pymongo
 langgraph 
 langchain_tavily
 openai-whisper

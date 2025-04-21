@@ -7,14 +7,14 @@ from langgraph.prebuilt import create_react_agent
 import json 
 import uuid
 import base64
-import psycopg2
-from psycopg2 import extras
+from pymongo import MongoClient
 from pdf2image import convert_from_path
 import os
+from datetime import datetime
 
 SAMPLERATE = 16000  
 SILENCE_THRESHOLD = 500  
-SILENCE_DURATION = 2  
+SILENCE_DURATION = 2
 TEMP_IMAGES_FOLDER = "temp_images" 
 
 def is_silent(audio_chunk, silence_threshold=SILENCE_THRESHOLD):
@@ -134,18 +134,12 @@ def save_json_jobs(groq_client, job_text):
         
 def generate_unique_filename(username: str, file_name: str):
     extension = file_name.rsplit('.', 1)[1] if '.' in file_name else ''
-    # resume_id = str(uuid.uuid4()).replace('-','')
-    return f'{username}.{extension}'
+    resume_id = datetime.now().strftime("%Y%m%d%H%M%S")
+    return f'{username}_{resume_id}.{extension}'
 
-def get_db_connection(db_host, db_name, db_user, db_password):
+def get_db_connection(mongo_db_url):
     try:
-        return psycopg2.connect(
-            host=db_host,
-            database=db_name,
-            user=db_user,
-            password=db_password,
-            port=5432
-        )
+        return MongoClient(mongo_db_url)
     except Exception as e:
         print("Database connection error:", e)
         return None

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Evaluation History - Resume Evaluation System</title>
+    <link rel="stylesheet" href="/static/css/style.css?v={{ get_version('static/css/style.css') }}" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/history.css?v={{ get_version('static/css/history.css') }}" />
+    <style>
+      .history-jd.expanded {
+         max-height: none;
+       }
+       .read-more {
+         text-align: center;
+         margin-top: 5px;
+         color: #2a74e2;
+         cursor: pointer;
+       }
+       .resume-file {
+         margin: 15px 0;
+         padding: 8px 15px;
+         background-color: #f8f9fa;
+         border-radius: 5px;
+       }
+       .resume-file a {
+         color: #2a74e2;
+         text-decoration: underline;
+         margin-left: 5px;
+       }
+       .resume-file a:hover {
+         color: #1a54b2;
+       }
+     </style>
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <header>
+        <h1><i class="fas fa-file-alt"></i> Resume Evaluation System</h1>
+        <nav>
+          <ul>
+            <li><a href="/dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="/jobs"><i class="fas fa-briefcase"></i> Related Jobs</a></li>
+            <li><a href="/history" class="active"><i class="fas fa-history"></i> History</a></li>
+            <li><a href="/login"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            <li style="background: white;width: 32px;height: 32px;border-radius: 100%;display: flex;align-items: center;justify-content: center;box-shadow: 0 2px 5px rgba(0,0,0,0.1);"><img src="/static/images/avatar-default.svg" style="width: 24px;"></li>
+          </ul>
+        </nav>
+      </header>
+
+      <main>
+        <section class="history-section">
+          <h2><i class="fas fa-history"></i> Your Evaluation History</h2>
+          
+          <div id="history-loader">
+            <i class="fas fa-spinner fa-spin"></i> Loading your evaluation history...
+          </div>
+          
+          <div id="history-content" class="hidden">
+            <!-- History items will be populated here -->
+          </div>
+          
+          <div id="no-history" class="no-history hidden">
+            <i class="fas fa-folder-open" style="font-size: 3rem; margin-bottom: 15px; color: #999;"></i>
+            <p>You don't have any evaluation history yet. Start by uploading your resume on the dashboard!</p>
+            <a href="/dashboard" class="btn btn-primary" style="margin-top: 20px;"><i class="fas fa-arrow-left"></i> Go to Dashboard</a>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/js/history.js?v={{ get_version('static/js/history.js') }}"></script>
+  </body>
+</html>

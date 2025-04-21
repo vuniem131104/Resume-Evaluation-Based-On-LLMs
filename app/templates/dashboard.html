@@ -4,25 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard - Resume Evaluation System</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=10" />
+    <link rel="stylesheet" href="/static/css/style.css?v={{ get_version('static/css/style.css') }}" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   </head>
   <body>
     <div class="dashboard-container">
       <header>
-        <h1>Resume Evaluation System</h1>
+        <h1><i class="fas fa-file-alt"></i> Resume Evaluation System</h1>
         <nav>
           <ul>
-            <li><a href="#" class="active">Dashboard</a></li>
-            <li><a href="/jobs" id="jobs">Related Jobs</a></li>
-            <li><a href="/login">Logout</a></li>
-            <li style="background: white;width: 30px;height: 30px;border-radius: 100%;display: flex;align-items: center;justify-content: center;"><img src="/static/images/avatar-default.svg" style="width: 22px;"></li>
+            <li><a href="#" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="/jobs" id="jobs"><i class="fas fa-briefcase"></i> Related Jobs</a></li>
+            <li><a href="/history"><i class="fas fa-history"></i> History</a></li>
+            <li><a href="/login"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            <li style="background: white;width: 32px;height: 32px;border-radius: 100%;display: flex;align-items: center;justify-content: center;box-shadow: 0 2px 5px rgba(0,0,0,0.1);"><img src="/static/images/avatar-default.svg" style="width: 24px;"></li>
           </ul>
         </nav>
       </header>
 
       <main>
         <section class="upload-section">
-          <h2>Upload Your Resume</h2>
+          <h2><i class="fas fa-upload"></i> Upload Your Resume</h2>
           <div class="upload-container">
             <form id="upload-form" enctype="multipart/form-data">
               <div class="file-drop-area">
@@ -37,13 +40,13 @@
                 />
               </div>
               <div id="file-name-display"></div>
-              <button type="submit" class="btn btn-primary">Upload</button>
+              <button type="submit" class="btn btn-primary"><i class="fas fa-cloud-upload-alt"></i> Upload</button>
             </form>
           </div>
         </section>
 
         <section class="jd-section">
-          <h2>Job Description</h2>
+          <h2><i class="fas fa-clipboard-list"></i> Job Description</h2>
           <div class="jd-container">
             <textarea
               id="job-description"
@@ -51,63 +54,65 @@
             ></textarea>
             <div class="jd-actions">
               <button id="save-jd-btn" class="btn btn-primary">
-                Save Job Description
+                <i class="fas fa-save"></i> Save Job Description
               </button>
-              <button id="clear-jd-btn" class="btn btn-secondary">Clear</button>
+              <button id="clear-jd-btn" class="btn btn-secondary">
+                <i class="fas fa-eraser"></i> Clear
+              </button>
             </div>
           </div>
         </section>
 
         <section class="evaluation-section">
-          <h2>Resume Evaluation</h2>
+          <h2><i class="fas fa-chart-bar"></i> Resume Evaluation</h2>
           <div id="evaluation-results" class="hidden">
             <div class="result-card">
               <h3>Evaluation Results</h3>
               <div class="scores">
                 <div class="score-item">
-                  <span class="score-label">Technical Skills</span>
+                  <span class="score-label"><i class="fas fa-code"></i> Technical Skills</span>
                   <div class="progress-bar">
                     <div class="progress" id="skills-progress"></div>
                   </div>
                   <span class="score-value" id="skills-score">0/20</span>
                 </div>
                 <div class="score-item">
-                  <span class="score-label">Experience</span>
+                  <span class="score-label"><i class="fas fa-briefcase"></i> Experience</span>
                   <div class="progress-bar">
                     <div class="progress" id="experience-progress"></div>
                   </div>
                   <span class="score-value" id="experience-score">0/20</span>
                 </div>
                 <div class="score-item">
-                  <span class="score-label">Education</span>
+                  <span class="score-label"><i class="fas fa-graduation-cap"></i> Education</span>
                   <div class="progress-bar">
                     <div class="progress" id="education-progress"></div>
                   </div>
                   <span class="score-value" id="education-score">0/10</span>
                 </div>
                 <div class="score-item">
-                  <span class="score-label">Soft Skills</span>
+                  <span class="score-label"><i class="fas fa-comments"></i> Soft Skills</span>
                   <div class="progress-bar">
                     <div class="progress" id="soft-skills-progress"></div>
                   </div>
                   <span class="score-value" id="soft-skills-score">0/10</span>
                 </div>
                 <div class="score-item">
-                  <span class="score-label">Projects & Achievements</span>
+                  <span class="score-label"><i class="fas fa-tasks"></i> Projects & Achievements</span>
                   <div class="progress-bar">
                     <div class="progress" id="projects-achievements-progress"></div>
                   </div>
                   <span class="score-value" id="projects-achievements-score">0/20</span>
                 </div>
                 <div class="score-item">
-                  <span class="score-label">Layout</span>
+                  <span class="score-label"><i class="fas fa-columns"></i> Layout</span>
                   <div class="progress-bar">
                     <div class="progress" id="layout-progress"></div>
                   </div>
                   <span class="score-value" id="layout-score">0/20</span>
                 </div>
                 <div class="score-item overall">
-                  <span class="score-label">Overall Score</span>
+                  <span class="score-label"><i class="fas fa-star"></i> Overall Score</span>
                   <div class="progress-bar">
                     <div class="progress" id="overall-progress"></div>
                   </div>
@@ -116,30 +121,30 @@
               </div>
 
               <div class="suggestions">
-                <h4>Assessment</h4>
+                <h4><i class="fas fa-lightbulb"></i> Assessment</h4>
                 <ul id="suggestion-list"></ul>
               </div>
 
               <div class="virtual-interview-prompt">
-                <h4>Want more accurate feedback?</h4>
+                <h4><i class="fas fa-question-circle"></i> Want more accurate feedback?</h4>
                 <p>
                   Take a virtual interview to get personalized improvement
                   suggestions based on your actual skills and experience.
                 </p>
                 <button id="start-interview-btn" class="btn btn-primary">
-                  Start Virtual Interview
+                  <i class="fas fa-video"></i> Start Virtual Interview
                 </button>
               </div>
             </div>
           </div>
           <div id="evaluation-placeholder">
             <p>
-              Upload a resume and provide a job description to see evaluation
+              <i class="fas fa-info-circle"></i> Upload a resume and provide a job description to see evaluation
               results
             </p>
           </div>
           <button id="evaluate-btn" class="btn btn-secondary" disabled>
-            Evaluate Resume
+            <i class="fas fa-search"></i> Evaluate Resume
           </button>
         </section>
 
@@ -148,10 +153,10 @@
           id="virtual-interview-section"
           class="virtual-interview-section hidden"
         >
-          <h2>Virtual Interview</h2>
+          <h2><i class="fas fa-video"></i> Virtual Interview</h2>
           <div class="interview-container">
             <div class="interview-header">
-              <h3>Technical Interview Simulation</h3>
+              <h3>Interview Simulation</h3>
               <p>
                 Answer the questions as you would in a real interview to get
                 personalized feedback
@@ -164,38 +169,11 @@
               <div class="interview-input">
                 <textarea id="interview-answer" placeholder="Type your answer here..." style="width: 100%;" data-listener-added_9293b12b="true" oninput="adjustHeight(this)"></textarea>
                 <div class="button-group">
-                  <button id="record-answer-btn" class="btn btn-icon">
-                    <svg
-                      fill="none"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 16 16"
-                      style="
-                        min-width: 18px;
-                        min-height: 18px;
-                        color: black;
-                      "
-                    >
-                      <g id="microphone">
-                        <path
-                          id="Vector"
-                          fill-rule="evenodd"
-                          clip-rule="evenodd"
-                          d="M5.4 3.3334C5.4 1.89746 6.56406 0.733398 8 0.733398C9.43594 0.733398 10.6 1.89746 10.6 3.3334V8.00006C10.6 9.43601 9.43594 10.6001 8 10.6001C6.56406 10.6001 5.4 9.43601 5.4 8.00006V3.3334ZM8 1.9334C7.22681 1.9334 6.6 2.5602 6.6 3.3334V8.00006C6.6 8.77326 7.22681 9.40007 8 9.40007C8.7732 9.40007 9.4 8.77326 9.4 8.00006V3.3334C9.4 2.5602 8.7732 1.9334 8 1.9334ZM3.33334 6.06673C3.66471 6.06673 3.93334 6.33536 3.93334 6.66673V8.00006C3.93334 10.246 5.75405 12.0667 8 12.0667C10.246 12.0667 12.0667 10.246 12.0667 8.00006V6.66673C12.0667 6.33536 12.3353 6.06673 12.6667 6.06673C12.998 6.06673 13.2667 6.33536 13.2667 6.66673V8.00006C13.2667 10.7059 11.2262 12.9351 8.6 13.2329V14.0667H10.6667C10.998 14.0667 11.2667 14.3354 11.2667 14.6667C11.2667 14.9981 10.998 15.2667 10.6667 15.2667H5.33334C5.00197 15.2667 4.73334 14.9981 4.73334 14.6667C4.73334 14.3354 5.00197 14.0667 5.33334 14.0667H7.4V13.2329C4.77384 12.9351 2.73334 10.7059 2.73334 8.00006V6.66673C2.73334 6.33536 3.00197 6.06673 3.33334 6.06673Z"
-                          fill="black"
-                        ></path>
-                      </g>
-                    </svg>
+                  <button id="record-answer-btn" class="btn-icon">
+                    <i class="fas fa-microphone"></i>
                   </button>
-                  <button id="send-answer-btn" class="btn btn-icon">
-                    <svg width="18" height="18" viewBox="0 0 20 20">
-                      <g>
-                        <path
-                          fill="black"
-                          d="M14.006 3.162 4.157 6.703c-1.504.541-2.256.812-2.282 1.332-.025.52.697.864 2.14 1.55l3.991 1.897c.242.115.363.172.457.264.094.092.153.213.272.453l1.924 3.878c.698 1.408 1.047 2.112 1.564 2.082.516-.03.78-.771 1.307-2.252l3.477-9.753c.721-2.023 1.082-3.034.556-3.558-.525-.524-1.536-.16-3.557.566Z"
-                        />
-                      </g>
-                    </svg>
+                  <button id="send-answer-btn" class="btn-icon">
+                    <i class="fas fa-paper-plane"></i>
                   </button>
                 </div>
               </div>
@@ -203,14 +181,14 @@
 
             <div class="interview-controls">
               <button id="end-interview-btn" class="btn btn-secondary">
-                End Interview & Get Feedback
+                <i class="fas fa-stop-circle"></i> End Interview & Get Feedback
               </button>
             </div>
           </div>
 
           <div id="interview-results" class="interview-results hidden">
             <div class="result-card">
-              <h3>Interview Assessment</h3>
+              <h3><i class="fas fa-clipboard-check"></i> Interview Assessment</h3>
               <div class="interview-summary">
                 <h4>Summary</h4>
                 <p id="interview-summary-text"></p>
@@ -228,10 +206,10 @@
 
               <div class="interview-actions">
                 <button id="download-report-btn" class="btn btn-primary">
-                  Download Full Report
+                  <i class="fas fa-download"></i> Download Full Report
                 </button>
                 <button id="back-to-evaluation-btn" class="btn btn-secondary">
-                  Back to Evaluation
+                  <i class="fas fa-arrow-left"></i> Back to Evaluation
                 </button>
               </div>
             </div>
@@ -241,13 +219,13 @@
     </div>
 
 
-    <script src="/static/js/script.js?v=26"></script>
+    <script src="/static/js/script.js?v={{ get_version('static/js/script.js') }}"></script>
     <script>
       function adjustHeight(textarea) {
           textarea.style.height = "50px"; // Đặt lại chiều cao ban đầu
           let newHeight = textarea.scrollHeight; // Lấy chiều cao nội dung
           textarea.style.height = Math.min(newHeight, 150) + "px"; // Giới hạn tối đa 150px
       }
-      </script>
+    </script>
   </body>
 </html>

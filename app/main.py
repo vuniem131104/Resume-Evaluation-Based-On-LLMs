@@ -1,11 +1,12 @@
 from fastapi import FastAPI, BackgroundTasks, Request, Form, File, UploadFile, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import os
 import shutil
 import json
 import re
+import hashlib
 from typing import Optional, List
 from pydantic import BaseModel
 from evaluate import cv_evaluation_pipeline
@@ -17,25 +18,60 @@ import bcrypt
 from langchain_groq import ChatGroq
 import redis 
 from rq import Queue 
+from datetime import datetime
+import time
 
 
 load_dotenv()
 
+# Function to get file version based on last modified timestamp
+def get_file_version(file_path):
+    """
+    Trả về version của file dựa vào thời gian sửa đổi gần nhất hoặc md5 hash
+    """
+    if not os.path.exists(file_path):
+        return int(time.time())
+    
+    # Sử dụng thời gian sửa đổi
+    last_modified = os.path.getmtime(file_path)
+    return str(int(last_modified))
+    
+    # Hoặc sử dụng md5 hash
+    # with open(file_path, 'rb') as f:
+    #     file_hash = hashlib.md5(f.read()).hexdigest()[:8]
+    # return file_hash
+
+# Custom Jinja2Templates class to add version to static files
+class VersionedTemplates(Jinja2Templates):
+    def __init__(self, directory):
+        super().__init__(directory)
+        self.env.globals['get_version'] = self.get_version
+    
+    def get_version(self, file_path):
+        # Đường dẫn tuyệt đối đến file static
+        full_path = os.path.join(os.getcwd(), 'app', file_path.lstrip('/'))
+        return get_file_version(full_path)
+
 groq_api_key = os.getenv("GROQ_API_KEY")
 REDIS_HOST = os.getenv("REDIS_HOST", 'localhost')
-DB_HOST = os.getenv("DB_HOST", 'localhost')
-DB_NAME = os.getenv("POSTGRES_DB", 'postgres')
-DB_USER = os.getenv("POSTGRES_USER", 'postgres')
-DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", 'postgres')
+MONGO_DB_URL = os.getenv("MONGO_DB_URL", 'localhost')
+DB_NAME = os.getenv("DB_NAME", 'resume_evaluation_system')
+DB_COLLECTION = os.getenv("DB_COLLECTION", 'users')
 groq_client = Groq(api_key=groq_api_key)
 
 llm = ChatGroq(model="deepseek-r1-distill-llama-70b", api_key=groq_api_key)
 
+mongo_client = get_db_connection(MONGO_DB_URL)
+db = mongo_client[DB_NAME]
+collection = db[DB_COLLECTION]
+
 RESUME_EVALUATION_QUEUE_NAME = "resume_evaluation_queue"
 RELATED_JOBS_QUEUE_NAME = "related_jobs_queue"
+HISTORY_QUEUE_NAME = "history_queue"
 redis_conn = redis.Redis(host=REDIS_HOST, port=6379, db=0)
 evaluation_queue = Queue(RESUME_EVALUATION_QUEUE_NAME, connection=redis_conn)
 getJobs_queue = Queue(RELATED_JOBS_QUEUE_NAME, connection=redis_conn)
+history_queue = Queue(HISTORY_QUEUE_NAME, connection=redis_conn)
 
     
 class EvaluationRequest(BaseModel):
@@ -67,30 +103,10 @@ TEMP_IMAGES_FOLDER = "temp_images"
 if not os.path.exists(TEMP_IMAGES_FOLDER):
     os.makedirs(TEMP_IMAGES_FOLDER)
     
-def create_tables():
-    conn = get_db_connection(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        user_name VARCHAR(255) UNIQUE NOT NULL,
-        password TEXT NOT NULL
-    );
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS user_history (
-        user_name VARCHAR(255) UNIQUE NOT NULL,
-        related_jobs TEXT[]
-    );
-    """)
-    conn.commit()  
-    cursor.close()
-    conn.close()
-    print("Database tables created successfully.")
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+templates = VersionedTemplates(directory="templates")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -104,19 +120,10 @@ async def login_page(request: Request, message: Optional[str] = None):
 
 @app.post("/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
-    conn = get_db_connection(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
-    if not conn:
-        return {"error": "Database connection failed"}
-
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cursor.execute("SELECT password FROM users WHERE user_name = %s", (username,))
-    user = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
+    user = collection.find_one({"username": username})
 
     if user and bcrypt.checkpw(password.encode(), user["password"].encode()):
-        return RedirectResponse(url="/dashboard", status_code=303)
+        return JSONResponse({"success": True, "username": username, "redirect": "/dashboard"})
     
     return templates.TemplateResponse("login.html", {
         "request": request, 
@@ -127,6 +134,9 @@ async def login(request: Request, username: str = Form(...), password: str = For
 async def jobs_page(request: Request, message: Optional[str] = None):
     return templates.TemplateResponse("jobs.html", {"request": request, "message": message})
 
+@app.get("/history", response_class=HTMLResponse)
+async def history_page(request: Request, message: Optional[str] = None):
+    return templates.TemplateResponse("history.html", {"request": request, "message": message})
 
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request, message: Optional[str] = None):
@@ -135,17 +145,8 @@ async def register_page(request: Request, message: Optional[str] = None):
 
 @app.post("/register")
 async def register(request: Request, username: str = Form(...), password: str = Form(...)):
-    conn = get_db_connection(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
-    if not conn:
-        return {"error": "Database connection failed"}
-    
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT COUNT(*) FROM users WHERE user_name = %s", (username,))
-    (user_exists,) = cursor.fetchone()
-    if user_exists:
-        cursor.close()
-        conn.close()
+    user = collection.find_one({"username": username})
+    if user:
         return templates.TemplateResponse("register.html", {
             "request": request, 
             "message": "Username already exists"
@@ -153,11 +154,13 @@ async def register(request: Request, username: str = Form(...), password: str = 
 
     hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-    cursor.execute("INSERT INTO users (user_name, password) VALUES (%s, %s)", (username, hashed_password))
-    conn.commit()
-
-    cursor.close()
-    conn.close()
+    documents = {
+        "username": username,
+        "password": hashed_password,
+        "desired_jobs": [],
+        "evaluation_history": []
+    }
+    collection.insert_one(documents)
 
     return RedirectResponse(url="/login?message=Registration+successful", status_code=303)
 
@@ -183,7 +186,6 @@ async def upload_file(username: str = Form(...), file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 def evaluate_resume(username, file_path, job_description):
-    print(f"DB Connection Params: Host={DB_HOST}, DB={DB_NAME}, User={DB_USER}")
 
     results = cv_evaluation_pipeline(username, file_path, job_description)
     content_evaluation = results['content_evaluation']
@@ -191,35 +193,39 @@ def evaluate_resume(username, file_path, job_description):
     
     try:
         cv_data = results['cv_json']
-        position = cv_data['personal_info'].get('desired_job', 'unknown')
+        position = cv_data['personal_info'].get('desired_job', None)
     except Exception as e:
-        position = "Unknown"
+        position = None
         print(f"Error extracting position: {str(e)}")
-    
-    conn = get_db_connection(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
-    cursor = conn.cursor()
-    username = username
-    cursor.execute("SELECT COUNT(*) FROM user_history WHERE user_name = %s", (username,))
-    user_exists = cursor.fetchone()[0]
 
-    if user_exists:
-        cursor.execute("""
-            UPDATE user_history
-            SET related_jobs = CASE
-                WHEN NOT (%s = ANY(related_jobs)) THEN array_append(related_jobs, %s)
-                ELSE related_jobs
-            END
-            WHERE user_name = %s
-        """, (position, position, username))
-    else:
-        cursor.execute("""
-            INSERT INTO user_history (user_name, related_jobs)
-            VALUES (%s, %s)
-        """, (username, [position]))  
+    result_to_update = {
+        "job_description": job_description,
+        "resume_file": file_path,
+        "evaluation_date": datetime.now().strftime("%Y-%m-%d"),
+        "evaluation_result": {
+            "technical_score": content_evaluation['evaluation']['technical_skills_score'],
+            "experience_score": content_evaluation['evaluation']['experience_score'],
+            "education_score": content_evaluation['evaluation']['education_score'],
+            "soft_skills_score": content_evaluation['evaluation']['soft_skills_score'],
+            "projects_achievements_score": content_evaluation['evaluation']['projects_achievements_score'],
+            "layout_score": str(int(layout_evaluation['overall_layout_score'])),
+            "total_score": str(int(content_evaluation['evaluation']['total_score']) + int(layout_evaluation['overall_layout_score'])),
+            "strengths": content_evaluation['analysis']['strengths'],
+            "weaknesses": content_evaluation['analysis']['weaknesses'],
+            "recommendation": content_evaluation['analysis']['recommendation'],
+        }
+    }
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+    if position:
+        if position not in collection.find_one({"username": username})['desired_jobs']:
+            collection.update_one(
+                {"username": username},
+                {"$push": {"desired_jobs": position}}
+            )
+        collection.update_one(
+            {"username": username},
+            {"$push": {"evaluation_history": result_to_update}}
+        )
     
     return {
         "content_evaluation": content_evaluation,
@@ -403,26 +409,11 @@ async def start_recording_endpoint():
         return {"success": False, "error": str(e)}
 
 def get_jobs(username):
-    if not redis_conn.exists(f'jobs:{username}'):
-        conn = get_db_connection(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
-        cursor = conn.cursor()
-        username = username
-        cursor.execute("SELECT related_jobs FROM user_history WHERE user_name = %s", (username,))
-        result = cursor.fetchone()[0]
-        jobs = set(result)
-        agent = create_agent(llm)
-        job_text = ''
-        for job in jobs:
-            job_text += get_job_text(job, agent)
-        cv_json = save_json_jobs(groq_client, job_text)
-        redis_conn.set(f'jobs:{username}', json.dumps(cv_json))
-        # with open('jobs.json', 'w') as f:
-        #     json.dump(cv_json, f, indent=2)
-        return cv_json
-    else:
-        jobs = redis_conn.get(f'jobs:{username}')
-        jobs = json.loads(jobs.decode())
-        return jobs
+    jobs = collection.find_one({"username": username})['desired_jobs']
+    agent = create_agent(llm)
+    job_text = ' '.join([get_job_text(job, agent) for job in jobs])
+    cv_json = save_json_jobs(groq_client, job_text)
+    return cv_json
 
 @app.post('/get_related_jobs')
 def get_related_jobs(request: RelatedJobs):
@@ -437,7 +428,59 @@ def get_related_jobs_result(request: Request, job_id: str):
         return JSONResponse({"status": "pending"})
     return JSONResponse({"status": "completed", "result": job.result})
 
+def get_history(username):
+    history = collection.find_one({"username": username})['evaluation_history']
+    return history
+
+@app.post('/get_evaluation_history')
+def get_evaluation_history(request: RelatedJobs):
+    username = request.username
+    job = history_queue.enqueue(get_history, username=username)
+    return JSONResponse({"job_id": job.get_id()})
+
+@app.get('/get_evaluation_history_result/{job_id}')
+def get_evaluation_history_result(request: Request, job_id: str):
+    job = history_queue.fetch_job(job_id)
+    if job is None or not job.is_finished:
+        return JSONResponse({"status": "pending"})
+    return JSONResponse({"status": "completed", "result": job.result})
+
+@app.get('/view_resume')
+async def view_resume(request: Request, path: str):
+    """Hiển thị file CV nếu là PDF"""
+    try:
+        # Kiểm tra xem file có tồn tại không
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Chỉ cho phép hiển thị file PDF
+        if path.lower().endswith('.pdf'):
+            return FileResponse(path, media_type="application/pdf")
+        else:
+            # Nếu không phải PDF, chuyển hướng để tải xuống
+            return RedirectResponse(url=f"/download_resume?path={path}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get('/download_resume')
+async def download_resume(request: Request, path: str):
+    """Tải xuống file CV"""
+    try:
+        # Kiểm tra xem file có tồn tại không
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Lấy tên file từ đường dẫn
+        filename = os.path.basename(path)
+        
+        # Trả về file để tải xuống
+        return FileResponse(
+            path=path, 
+            filename=filename,
+            media_type="application/octet-stream"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
-    print(f"Connect with redis at {REDIS_HOST} and postgres at {DB_HOST}")
-    create_tables()
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)   

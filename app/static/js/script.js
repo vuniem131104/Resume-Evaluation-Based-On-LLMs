@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const recordingBtn = document.getElementById('record-answer-btn')
 
     const username = sessionStorage.getItem("username");
+    
 
     let uploadedFileName = '';
     let fileUploaded = false;
@@ -242,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
 
                 const weaknessesHeader = document.createElement('h5');
-                weaknessesHeader.textContent = 'Areas for Improvement:';
+                weaknessesHeader.textContent = 'Weaknesses:';
                 weaknessesHeader.style.marginTop = '15px';
                 suggestionList.appendChild(weaknessesHeader);
 

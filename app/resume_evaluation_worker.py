@@ -18,4 +18,4 @@ if __name__ == '__main__':
     worker = Worker(queues, connection=conn)
     
     # Start worker
-    worker.work()   
+    worker.work()
