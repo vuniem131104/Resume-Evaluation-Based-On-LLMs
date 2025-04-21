@@ -7,29 +7,38 @@ A smart, asynchronous resume evaluation system powered by LLMs, Redis, and FastA
 ### 1. Main
 - Users upload their resumes and job descriptions here
 
-![main1](https://github.com/user-attachments/assets/058a60e2-78c2-48a0-ac24-edce3a6e5065)
+![image](https://github.com/user-attachments/assets/0b1e9e1e-e6a6-4818-a79e-2cdbb703afba)
+
 
 - Then, click "Evaluate Resume" button and receive result
 
-![main2](https://github.com/user-attachments/assets/46efc1e0-c41e-45e9-a977-6ba557a865ce)
+![image](https://github.com/user-attachments/assets/4996f95e-de08-49dc-abb3-eba989a68594)
+
 
 - Virtual Interview
   
-![main3](https://github.com/user-attachments/assets/e498d49a-ce9a-4841-bc03-cf7ccf66aeb6)
+![image](https://github.com/user-attachments/assets/63032caa-3301-4016-9360-552b84a5f174)
+
 
 - Jobs recommedation based on users' history
+
+![image](https://github.com/user-attachments/assets/7517e05d-b04f-432c-b535-d947c41281f1)
+
+
+- Users' evaluation history
   
-![jobs](https://github.com/user-attachments/assets/470f5f6e-e2f1-4c4a-aceb-c39e6c4554ee)
+![image](https://github.com/user-attachments/assets/f9f2f28b-3a8e-414a-afca-e0c8f97feeb0)
+
 
 ## 🔧 Tech Stack
 
 - **FastAPI** – API server
 - **Redis** – Message queue and temporary result store
-- **RQ / Celery** – Asynchronous task handling (e.g., resume evaluation)
+- **Redis Queue** – Asynchronous task handling (e.g., resume evaluation)
 - **Llama 4** – Used for text extraction, job/resume standardization and evaluate content and layout of the resume. Also, it will serve as a virtual recruiter and give personalized feedback
 - **OpenAI Whisper** – Voice recognition for virtual interviews
 - **Tavily + Web Search Agent** – Recent job recommendations
-- **PostgreSQL** – User history and job storage, user database
+- **MongoDB** – User history and job storage, user database
 - **AWS S3** – Store resumes files uploaded by users
 
 ---
@@ -56,12 +65,12 @@ A smart, asynchronous resume evaluation system powered by LLMs, Redis, and FastA
 
 ### 3. Job Recommendation via Web Search Agent
 
-![agent](https://github.com/user-attachments/assets/986a83f0-c182-4bb4-9f75-af56cd0dc805)
+![agent](https://github.com/user-attachments/assets/9aefbf82-5c81-4066-b693-af843b57aaf4)
 
 
 - **Input**: User submits a request to find relevant jobs.
 - **Process**:
-  - Job preferences are fetched from **PostgreSQL**.
+  - Job preferences are fetched from **MongoDB**.
   - Tavily-powered **Web Search Agent** fetches the latest related job postings.
 - **Output**: Returned to the user.
 
