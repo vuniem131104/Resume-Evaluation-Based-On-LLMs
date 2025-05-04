@@ -11,7 +11,6 @@ services:
     env_file:
       - .env
     environment:
-      - DB_HOST=db
       - REDIS_HOST=redis
     volumes:
       - ./uploads:/app/uploads
@@ -25,7 +24,6 @@ services:
       - .env
     environment:
       - REDIS_HOST=redis
-      - DB_HOST=db
     volumes:
       - ./uploads:/app/uploads
  
@@ -38,7 +36,6 @@ services:
       - .env
     environment:
       - REDIS_HOST=redis
-      - DB_HOST=db
     volumes:
       - ./uploads:/app/uploads
 
@@ -49,13 +46,15 @@ services:
       - redis_data:/data
 
   db:
-    image: postgres:14
+    image: mongo:6.0
     restart: always
     env_file:
       - .env
+    ports:
+      - "27018:27017"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mongodb_data:/data/db
 
 volumes:
-  postgres_data:
+  mongodb_data:
   redis_data:

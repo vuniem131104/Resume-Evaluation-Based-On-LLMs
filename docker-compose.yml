@@ -25,7 +25,6 @@ services:
       - .env
     environment:
       - REDIS_HOST=redis
-      - DB_HOST=db
     volumes:
       - ./app:/app
  
@@ -38,7 +37,6 @@ services:
       - .env
     environment:
       - REDIS_HOST=redis
-      - DB_HOST=db
     volumes:
       - ./app:/app
 
@@ -49,14 +47,14 @@ services:
       - '6380:6379'
 
   db:
-    image: postgres:14
+    image: mongo:6.0
     restart: always
     env_file:
       - .env
     ports:
-      - "5433:5432"
+      - "27018:27017"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mongodb_data:/data/db
 
 volumes:
-  postgres_data:
+  mongodb_data:

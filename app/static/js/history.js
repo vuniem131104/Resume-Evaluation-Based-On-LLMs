@@ -1,23 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     let username = sessionStorage.getItem('username') || 'guest';
     
-    // Load evaluation history
     async function loadHistory() {
         try {
-            // Step 1: Request history
-            const response = await fetch('/get_evaluation_history', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username: username })
-            });
-            
-            const data = await response.json();
-            const jobId = data.job_id;
-            
-            // Step 2: Poll for results
-            pollHistoryResults(jobId);
+            pollHistoryResults();
         } catch (error) {
             console.error('Error loading history:', error);
             document.getElementById('history-loader').classList.add('hidden');
@@ -25,19 +11,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Poll for history results
-    async function pollHistoryResults(jobId) {
+    async function pollHistoryResults() {
         try {
-            const response = await fetch(`/get_evaluation_history_result/${jobId}`);
+            const response = await fetch(`/get_history/${username}`);
             const data = await response.json();
-            
-            if (data.status === 'pending') {
-                // If still pending, poll again after 1 second
-                setTimeout(() => pollHistoryResults(jobId), 1000);
-            } else if (data.status === 'completed') {
-                // console.log(data.result);
-                displayHistory(data.result);
-            }
+            displayHistory(data.history);
         } catch (error) {
             console.error('Error polling history results:', error);
             document.getElementById('history-loader').classList.add('hidden');
@@ -45,7 +23,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Display history items
     function displayHistory(historyItems) {
         document.getElementById('history-loader').classList.add('hidden');
         
@@ -57,7 +34,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const historyContent = document.getElementById('history-content');
         historyContent.classList.remove('hidden');
         
-        // Sort history by date (newest first)
         historyItems.sort((a, b) => {
             return new Date(b.evaluation_date) - new Date(a.evaluation_date);
         });

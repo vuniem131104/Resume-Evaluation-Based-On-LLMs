@@ -54,14 +54,14 @@ class VersionedTemplates(Jinja2Templates):
 
 groq_api_key = os.getenv("GROQ_API_KEY")
 REDIS_HOST = os.getenv("REDIS_HOST", 'localhost')
-MONGO_DB_URL = os.getenv("MONGO_DB_URL", 'localhost')
+MONGO_URI = os.getenv("MONGO_URI", 'localhost')
 DB_NAME = os.getenv("DB_NAME", 'resume_evaluation_system')
 DB_COLLECTION = os.getenv("DB_COLLECTION", 'users')
 groq_client = Groq(api_key=groq_api_key)
 
 llm = ChatGroq(model="deepseek-r1-distill-llama-70b", api_key=groq_api_key)
 
-mongo_client = get_db_connection(MONGO_DB_URL)
+mongo_client = get_db_connection(MONGO_URI)
 db = mongo_client[DB_NAME]
 collection = db[DB_COLLECTION]
 
@@ -428,36 +428,45 @@ def get_related_jobs_result(request: Request, job_id: str):
         return JSONResponse({"status": "pending"})
     return JSONResponse({"status": "completed", "result": job.result})
 
-def get_history(username):
-    history = collection.find_one({"username": username})['evaluation_history']
-    return history
+# def get_history(username):
+#     history = collection.find_one({"username": username})['evaluation_history']
+#     return history
 
-@app.post('/get_evaluation_history')
-def get_evaluation_history(request: RelatedJobs):
-    username = request.username
-    job = history_queue.enqueue(get_history, username=username)
-    return JSONResponse({"job_id": job.get_id()})
+# @app.post('/get_evaluation_history')
+# def get_evaluation_history(request: RelatedJobs):
+#     username = request.username
+#     job = history_queue.enqueue(get_history, username=username)
+#     return JSONResponse({"job_id": job.get_id()})
 
-@app.get('/get_evaluation_history_result/{job_id}')
-def get_evaluation_history_result(request: Request, job_id: str):
-    job = history_queue.fetch_job(job_id)
-    if job is None or not job.is_finished:
-        return JSONResponse({"status": "pending"})
-    return JSONResponse({"status": "completed", "result": job.result})
+# @app.get('/get_evaluation_history_result/{job_id}')
+# def get_evaluation_history_result(request: Request, job_id: str):
+#     job = history_queue.fetch_job(job_id)
+#     if job is None or not job.is_finished:
+#         return JSONResponse({"status": "pending"})
+#     return JSONResponse({"status": "completed", "result": job.result})
+
+@app.get('/get_history/{username}')
+async def get_history(username: str):
+    try:
+        user = collection.find_one({"username": username})
+        if user is None:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+        
+        history = user.get('evaluation_history', [])
+        return JSONResponse({"history": history})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 @app.get('/view_resume')
 async def view_resume(request: Request, path: str):
     """Hiển thị file CV nếu là PDF"""
     try:
-        # Kiểm tra xem file có tồn tại không
         if not os.path.exists(path):
             raise HTTPException(status_code=404, detail="File not found")
         
-        # Chỉ cho phép hiển thị file PDF
         if path.lower().endswith('.pdf'):
             return FileResponse(path, media_type="application/pdf")
         else:
-            # Nếu không phải PDF, chuyển hướng để tải xuống
             return RedirectResponse(url=f"/download_resume?path={path}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -466,14 +475,11 @@ async def view_resume(request: Request, path: str):
 async def download_resume(request: Request, path: str):
     """Tải xuống file CV"""
     try:
-        # Kiểm tra xem file có tồn tại không
         if not os.path.exists(path):
             raise HTTPException(status_code=404, detail="File not found")
         
-        # Lấy tên file từ đường dẫn
         filename = os.path.basename(path)
         
-        # Trả về file để tải xuống
         return FileResponse(
             path=path, 
             filename=filename,
